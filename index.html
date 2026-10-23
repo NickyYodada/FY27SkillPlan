@@ -2327,8 +2327,9 @@
             if (res.ok) {
               cloudStatus = "online";
               updateSyncUI();
+              return true;
             }
-            return;
+            return false;
           }
 
           if (!this.idToken) { this.notePushFailure(); return; }
@@ -2402,6 +2403,7 @@
           if (res.ok) {
             pushedVersions.forEach((v, id) => { if (dirtyIds.get(id) === v) dirtyIds.delete(id); });
             this.notePushSuccess();
+            return true;
           } else if (res.status === 401 || res.status === 403) {
             this.pushing = false;
             if (!isRetry && verifiedTokenInfo && verifiedTokenInfo.token && verifiedTokenInfo.role !== "victor") {
@@ -4222,7 +4224,7 @@
     if (_btnSaveTa) _btnSaveTa.addEventListener("click", () => exportSelfContainedHtml("ta"));
 
     // Force Save & Sync button (Admin & TA modes)
-    function forceManualSaveAndSync() {
+    async function forceManualSaveAndSync() {
     markDirty();
     lastSyncTimestamp = formatNowTimestamp();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
@@ -4232,9 +4234,12 @@
     }
     cloudStatus = "syncing";
     updateSyncUI();
-    pushStateToCloud();
-    setTimeout(() => {
-      cloudStatus = "online";
+    clearTimeout(cloudPushTimer);
+    for (let i = 0; i < 50 && CloudSyncAdapter.pushing; i++) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    const ok = await CloudSyncAdapter.pushState(encodeCompactCloudPayload());
+    if (ok) {
       syncedTargets.ta = true;
       syncedTargets.victor = true;
       syncedTargets.admin = true;
@@ -4244,7 +4249,15 @@
           ? `✅ Saved & Force-Synced to Cloud! (${lastSyncTimestamp})`
           : `✅ 已儲存並強制同步最新資料至雲端！(${lastSyncTimestamp})`
       );
-    }, 150);
+    } else {
+      cloudStatus = "offline";
+      updateSyncUI();
+      showToast(
+        currentLang === "en"
+          ? "❌ Force sync failed. Changes are kept locally and will retry automatically"
+          : "❌ 強制同步失敗，修改已暫存本機，連線恢復後將自動重試"
+      );
+    }
     }
 
     const _btnForceSyncAdmin = document.getElementById("btnForceSaveSyncAdmin");
