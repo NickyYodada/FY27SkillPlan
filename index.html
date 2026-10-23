@@ -2026,6 +2026,14 @@
       return null;
     }
 
+    // Members edited locally but not yet confirmed written to the cloud (id -> edit version)
+    const dirtyIds = new Map();
+    let dirtyVersion = 0;
+    function markDirty(ids) {
+      const list = Array.isArray(ids) ? ids : members.map(m => m.id);
+      list.forEach(id => dirtyIds.set(id, ++dirtyVersion));
+    }
+
     function encodeCompactCloudPayload() {
       const nowEpoch = Date.now();
       lastAppliedCloudEpoch = Math.max(lastAppliedCloudEpoch, nowEpoch);
@@ -2062,7 +2070,7 @@
         parsed.d.forEach(row => {
           const [id, advisor, status, path, target, q3Status, q4Status] = row;
           const item = members.find(m => m.id === id);
-          if (item) {
+          if (item && !dirtyIds.has(id)) {
             let rowDiff = false;
             if (parsed.r === "admin") {
               if (item.advisor !== advisor || item.status !== status) {
@@ -2305,6 +2313,7 @@
       },
 
       async pushState(payload, isRetry = false) {
+        let owns = false;
         try {
           if (CLOUD_SYNC_CONFIG.provider === "azure-blob-func") {
             const res = await fetch(CLOUD_SYNC_CONFIG.azure.endpointUrl, {
@@ -2322,8 +2331,59 @@
             return;
           }
 
-          if (!this.idToken) return;
+          if (!this.idToken) { this.notePushFailure(); return; }
+          if (this.pushing) { this.pushAgain = true; return; }
+          this.pushing = true;
+          owns = true;
           const dbUrl = CLOUD_SYNC_CONFIG.firebase.databaseURL;
+
+          // Merge (B2): fetch the latest cloud payload and keep remote values for every member we did not edit locally
+          const gr = await fetch(`${dbUrl}/state/payload.json?auth=${this.idToken}&_t=${Date.now()}`, { cache: "no-store" });
+          if (gr.status === 401 || gr.status === 403) {
+            this.pushing = false;
+            if (!isRetry && verifiedTokenInfo && verifiedTokenInfo.token && verifiedTokenInfo.role !== "victor") {
+              const reAuth = await this.authenticateWithToken(verifiedTokenInfo.token);
+              if (reAuth.ok) {
+                this.reconnectSseStream();
+                return await this.pushState(payload, true);
+              }
+            }
+            this.notePushFailure(true);
+            return;
+          }
+          if (!gr.ok) throw new Error("merge-read failed");
+          const rawRemote = await gr.json();
+          let remote = null;
+          try { remote = typeof rawRemote === "string" ? JSON.parse(rawRemote) : rawRemote; } catch (e) {}
+          if (remote && Array.isArray(remote.d)) {
+            let mergedDiff = false;
+            remote.d.forEach(row => {
+              const [rid, advisor, status, rpath, rtarget, rq3, rq4] = row;
+              const item = members.find(m => m.id === rid);
+              if (!item) return;
+              // TA cannot change advisor/status, so always take them from the cloud
+              if (currentRole === "ta") {
+                item.advisor = advisor;
+                item.status = status;
+              }
+              if (dirtyIds.has(rid)) return;
+              if (item.advisor !== advisor || item.status !== status || item.path !== rpath ||
+                  (item.target || "") !== (rtarget || "") || item.q3Status !== rq3 || item.q4Status !== rq4) {
+                mergedDiff = true;
+              }
+              item.advisor = advisor;
+              item.status = status;
+              item.path = rpath;
+              item.target = rtarget;
+              item.q3Status = rq3;
+              item.q4Status = rq4;
+            });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
+            if (mergedDiff) updateDashboard();
+          }
+          payload = encodeCompactCloudPayload();
+          const pushedVersions = new Map(dirtyIds);
+
           // Use PATCH on /state.json so TA role only writes allowed progress keys (members, payload, updatedAt, updatedBy) without touching /state/roster or /state/meta
           const patchBody = {
             members,
@@ -2340,9 +2400,10 @@
             body: JSON.stringify(patchBody)
           });
           if (res.ok) {
-            cloudStatus = "online";
-            updateSyncUI();
+            pushedVersions.forEach((v, id) => { if (dirtyIds.get(id) === v) dirtyIds.delete(id); });
+            this.notePushSuccess();
           } else if (res.status === 401 || res.status === 403) {
+            this.pushing = false;
             if (!isRetry && verifiedTokenInfo && verifiedTokenInfo.token && verifiedTokenInfo.role !== "victor") {
               const reAuth = await this.authenticateWithToken(verifiedTokenInfo.token);
               if (reAuth.ok) {
@@ -2350,9 +2411,48 @@
                 return await this.pushState(payload, true);
               }
             }
-            showToast(currentLang === "en" ? "🔒 Read-only permission: cannot write to cloud" : "🔒 您目前為唯讀權限，無法寫入雲端資料庫");
+            this.notePushFailure(true);
+          } else {
+            this.notePushFailure();
           }
-        } catch (e) {}
+        } catch (e) {
+          this.notePushFailure();
+        } finally {
+          if (owns) {
+            this.pushing = false;
+            if (this.pushAgain) {
+              this.pushAgain = false;
+              pushStateToCloud();
+            }
+          }
+        }
+      },
+
+      notePushSuccess() {
+        const recovered = this.pushFailed;
+        this.pushFailed = false;
+        cloudStatus = "online";
+        updateSyncUI();
+        if (recovered) {
+          showToast(currentLang === "en" ? "✅ Cloud connection restored, pending changes saved" : "✅ 已恢復連線，未同步的修改已補寫至雲端");
+        }
+      },
+
+      notePushFailure(permissionDenied) {
+        if (permissionDenied) {
+          // Not a connectivity problem; retrying would never succeed, so drop the local-only edits' pending flag
+          dirtyIds.clear();
+          showToast(currentLang === "en" ? "🔒 Read-only permission: cannot write to cloud" : "🔒 您目前為唯讀權限，無法寫入雲端資料庫");
+          return;
+        }
+        this.pushFailed = true;
+        cloudStatus = "offline";
+        updateSyncUI();
+        const now = Date.now();
+        if (!this.lastFailToast || now - this.lastFailToast > 15000) {
+          this.lastFailToast = now;
+          showToast(currentLang === "en" ? "⚠️ Cloud write failed. Changes are kept locally and will retry automatically" : "⚠️ 雲端寫入失敗，修改已暫存本機，連線恢復後將自動重試");
+        }
       },
 
       reconnectSseStream() {
@@ -2405,6 +2505,11 @@
             this.sseSource.onopen = () => {
               cloudStatus = "online";
               updateSyncUI();
+              if (dirtyIds.size) pushStateToCloud();
+            };
+            this.sseSource.onerror = () => {
+              cloudStatus = "offline";
+              updateSyncUI();
             };
           } catch (e) {}
         }
@@ -2454,6 +2559,10 @@
         CloudSyncAdapter.pushState(payload);
       }, 120);
     }
+
+    // Auto-retry unsynced edits: on reconnect and every 30s while anything is still pending
+    window.addEventListener("online", () => { if (dirtyIds.size) pushStateToCloud(); });
+    setInterval(() => { if (dirtyIds.size && !CloudSyncAdapter.pushing) pushStateToCloud(); }, 30000);
 
     function updateAuthIdentityBadge() {
       const pill = document.getElementById("authRoleUserPill");
@@ -2641,7 +2750,8 @@
       return "tint-group-4";
     }
 
-    function markUnsyncedChanges() {
+    function markUnsyncedChanges(ids) {
+      markDirty(ids);
       syncedTargets.ta = false;
       syncedTargets.victor = false;
       syncedTargets.admin = false;
@@ -2878,10 +2988,10 @@
       updateSyncUI();
     }
 
-    function saveState(msg) {
+    function saveState(msg, ids) {
       if (currentRole !== "victor") {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
-        markUnsyncedChanges();
+        markUnsyncedChanges(ids);
       }
       updateDashboard();
       if (msg) showToast(msg);
@@ -3091,8 +3201,8 @@
       });
 
       tbody.querySelectorAll("select, input").forEach(el => {
-        const eventType = el.tagName === "SELECT" ? "change" : "input";
-        el.addEventListener(eventType, (e) => {
+        const evTypes = el.tagName === "SELECT" ? ["change"] : ["input", "change"];
+        evTypes.forEach(eventType => el.addEventListener(eventType, (e) => {
           if (currentRole === "victor") return;
           const id = Number(e.target.getAttribute("data-id"));
           const field = e.target.getAttribute("data-field");
@@ -3118,16 +3228,24 @@
           }
 
           localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
-          markUnsyncedChanges();
+          markDirty([id]);
 
-          if (eventType === "change") {
+          if (eventType === "input") {
+            // Typing only updates local state; the cloud push happens on blur ("change")
+            renderSlideReport();
+            renderPathBoard();
+            return;
+          }
+          markUnsyncedChanges([id]);
+
+          if (el.tagName === "SELECT") {
             updateDashboard();
-            showToast(currentLang === "en" ? `Updated ${item.name}` : `已更新 ${item.name} 的資料`);
           } else {
             renderSlideReport();
             renderPathBoard();
           }
-        });
+          showToast(currentLang === "en" ? `Updated ${item.name}` : `已更新 ${item.name} 的資料`);
+        }));
       });
     }
 
@@ -3377,7 +3495,7 @@
             const item = members.find(x => x.id === Number(idStr));
             if (item) {
               item.status = newStatus;
-              saveState(currentLang === "en" ? `Moved ${item.name} to ${newStatus}` : `已將 ${item.name} 移至 ${newStatus}`);
+              saveState(currentLang === "en" ? `Moved ${item.name} to ${newStatus}` : `已將 ${item.name} 移至 ${newStatus}`, [item.id]);
             }
           });
         });
@@ -4105,6 +4223,7 @@
 
     // Force Save & Sync button (Admin & TA modes)
     function forceManualSaveAndSync() {
+    markDirty();
     lastSyncTimestamp = formatNowTimestamp();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
     localStorage.setItem(SYNC_TIME_KEY, lastSyncTimestamp);
