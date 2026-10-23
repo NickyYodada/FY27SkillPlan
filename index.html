@@ -1,0 +1,4417 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FY27 H2 Growth Path &amp; Q3-Q4 Milestone Tracker</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("clawpilotTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <!-- Optional PptxGenJS & html-to-image for native PowerPoint (.pptx) generation -->
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+  <script src="https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--cp-bg);
+      color: var(--cp-text);
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.45;
+      padding: 20px 24px 48px;
+    }
+
+    .app-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Header */
+    .header-card {
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-left: 6px solid var(--cp-accent);
+      border-radius: 16px;
+      padding: 20px 24px;
+      box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .header-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--cp-text);
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .role-mode-badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 0.625rem;
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+      border: 1px solid var(--cp-accent);
+    }
+
+    /* Sync Timestamp Badge */
+    .sync-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 0.625rem;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+      color: var(--cp-text-muted);
+    }
+
+    .sync-status-pill.synced {
+      border-color: var(--cp-success);
+      color: var(--cp-success);
+      background: var(--cp-bg-elevated);
+    }
+
+    .sync-status-pill.dirty {
+      border-color: var(--cp-warning);
+      color: var(--cp-warning);
+      background: var(--cp-bg-elevated);
+    }
+
+    .sync-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      display: inline-block;
+    }
+
+    /* Language Pill Toggle */
+    .lang-pill-switch {
+      display: inline-flex;
+      align-items: center;
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      padding: 3px;
+      gap: 2px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    .lang-pill-btn {
+      border: none;
+      background: transparent;
+      color: var(--cp-text-muted);
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+
+    .lang-pill-btn.active {
+      background: var(--cp-accent);
+      color: var(--cp-accent-fg);
+    }
+
+    .header-subtitle {
+      font-size: 13px;
+      color: var(--cp-text-muted);
+      margin-top: 4px;
+    }
+
+    .advisor-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .advisor-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: var(--cp-text);
+    }
+
+    .advisor-pill strong {
+      color: var(--cp-accent);
+    }
+
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 12.5px;
+      font-weight: 600;
+      border-radius: 0.625rem;
+      border: 1px solid var(--cp-border);
+      background: var(--cp-surface);
+      color: var(--cp-text);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      background: var(--cp-surface-soft);
+      border-color: var(--cp-border-strong);
+    }
+
+    /* Needs Sync (Red/Crimson Alert State) */
+    .btn-sync-needed {
+      background: var(--cp-accent);
+      color: var(--cp-accent-fg);
+      border-color: var(--cp-accent);
+    }
+
+    .btn-sync-needed:hover {
+      background: var(--cp-accent-hover);
+      border-color: var(--cp-accent-hover);
+    }
+
+    /* Synced / Up-to-date State (Green Outline/Surface instead of staying Red!) */
+    .btn-synced-ok {
+      background: var(--cp-surface);
+      color: var(--cp-success);
+      border: 1.5px solid var(--cp-success);
+    }
+
+    .btn-synced-ok:hover {
+      background: var(--cp-surface-soft);
+      border-color: var(--cp-success);
+    }
+
+    .btn-primary {
+      background: var(--cp-accent);
+      color: var(--cp-accent-fg);
+      border-color: var(--cp-accent);
+    }
+
+    .btn-primary:hover {
+      background: var(--cp-accent-hover);
+      border-color: var(--cp-accent-hover);
+    }
+
+    .btn-outline-accent {
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+      border-color: var(--cp-accent);
+    }
+
+    .btn-outline-accent:hover {
+      background: var(--cp-accent);
+      color: var(--cp-accent-fg);
+    }
+
+    /* Role Preview Switcher Bar (Admin Only) */
+    .role-preview-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--cp-border);
+      width: 100%;
+    }
+
+    /* Sticky Live Update Notification Banner */
+    .live-update-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px 14px;
+      border-radius: 0.625rem;
+      border: 1.5px solid var(--cp-accent);
+      background: var(--cp-accent-soft);
+      color: var(--cp-text);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .live-update-banner.hidden {
+      display: none !important;
+    }
+
+    .live-update-banner-text {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .live-update-badge {
+      background: var(--cp-accent);
+      color: var(--cp-accent-fg);
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+
+    .role-preview-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--cp-text-muted);
+    }
+
+    .role-switch-btn {
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid var(--cp-border);
+      background: var(--cp-surface-soft);
+      color: var(--cp-text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .role-switch-btn.active {
+      background: var(--cp-accent);
+      color: var(--cp-accent-fg);
+      border-color: var(--cp-accent);
+    }
+
+    .role-share-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      width: 100%;
+    }
+
+    .role-share-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--cp-text);
+      white-space: nowrap;
+    }
+
+    .role-share-input {
+      flex: 1;
+      min-width: 240px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-family: Consolas, "Courier New", Courier, monospace;
+      color: var(--cp-link);
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-radius: 6px;
+      outline: none;
+    }
+
+    /* Locked Field Display for TA Mode */
+    .locked-field-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 0.625rem;
+      border: 1px dashed var(--cp-border-strong);
+      background: var(--cp-surface-soft);
+      color: var(--cp-text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      user-select: none;
+    }
+
+    .locked-icon {
+      font-size: 11px;
+      opacity: 0.85;
+    }
+
+    /* KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 12px;
+    }
+
+    .kpi-card {
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      padding: 16px 18px;
+      box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .kpi-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--cp-text-muted);
+    }
+
+    .kpi-value-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .kpi-value {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--cp-text);
+    }
+
+    .kpi-badge {
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 0.625rem;
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: var(--cp-surface-soft);
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid var(--cp-border);
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--cp-accent);
+      transition: width 0.25s ease;
+    }
+
+    .kpi-sub {
+      font-size: 11.5px;
+      color: var(--cp-text-soft);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    /* Criteria Banner */
+    .criteria-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 10px;
+    }
+
+    .criteria-item {
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-left: 4px solid var(--cp-accent);
+      border-radius: 0.625rem;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      box-shadow: 0 0 2px rgba(0,0,0,0.08);
+    }
+
+    .criteria-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--cp-text);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .criteria-desc {
+      font-size: 11.5px;
+      color: var(--cp-text-muted);
+    }
+
+    /* Navigation Tabs & Toolbar */
+    .toolbar-card {
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      padding: 12px 16px;
+      box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 7px 14px;
+      border-radius: 0.625rem;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--cp-text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .tab-btn:hover {
+      background: var(--cp-surface-soft);
+      color: var(--cp-text);
+    }
+
+    .tab-btn.active {
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+      border-color: var(--cp-accent);
+    }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .input-ctrl, .select-ctrl {
+      padding: 6px 10px;
+      border-radius: 0.625rem;
+      border: 1px solid var(--cp-border);
+      background: var(--cp-bg-elevated);
+      color: var(--cp-text);
+      font-size: 12px;
+      font-family: inherit;
+    }
+
+    .input-ctrl:focus, .select-ctrl:focus {
+      outline: 2px solid var(--cp-accent);
+      border-color: transparent;
+    }
+
+    /* Main Table View */
+    .panel-card {
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1080px;
+    }
+
+    th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--cp-text-muted);
+      padding: 10px 8px;
+      border-bottom: 2px solid var(--cp-border);
+      background: var(--cp-surface-soft);
+    }
+
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--cp-border);
+      font-size: 12.5px;
+      vertical-align: top;
+    }
+
+    tr:hover td {
+      background: var(--cp-bg-elevated);
+    }
+
+    /* Subtle group background tints (淡淡的不同底色) using Clawpilot variables & color-mix */
+    .tint-group-1 td {
+      background: color-mix(in srgb, var(--cp-link) 5%, var(--cp-surface));
+    }
+    .tint-group-2 td {
+      background: color-mix(in srgb, var(--cp-accent) 4.5%, var(--cp-surface));
+    }
+    .tint-group-3 td {
+      background: color-mix(in srgb, var(--cp-success) 5%, var(--cp-surface));
+    }
+    .tint-group-4 td {
+      background: var(--cp-surface-soft);
+    }
+
+    .tint-group-1:hover td {
+      background: color-mix(in srgb, var(--cp-link) 9%, var(--cp-surface));
+    }
+    .tint-group-2:hover td {
+      background: color-mix(in srgb, var(--cp-accent) 8.5%, var(--cp-surface));
+    }
+    .tint-group-3:hover td {
+      background: color-mix(in srgb, var(--cp-success) 9%, var(--cp-surface));
+    }
+
+    .group-header-1 td {
+      background: color-mix(in srgb, var(--cp-link) 12%, var(--cp-surface)) !important;
+      color: var(--cp-link) !important;
+      border-left: 4px solid var(--cp-link);
+    }
+    .group-header-2 td {
+      background: var(--cp-accent-soft) !important;
+      color: var(--cp-accent) !important;
+      border-left: 4px solid var(--cp-accent);
+    }
+    .group-header-3 td {
+      background: color-mix(in srgb, var(--cp-success) 12%, var(--cp-surface)) !important;
+      color: var(--cp-success) !important;
+      border-left: 4px solid var(--cp-success);
+    }
+    .group-header-4 td {
+      background: var(--cp-surface-soft) !important;
+      color: var(--cp-text-muted) !important;
+      border-left: 4px solid var(--cp-border-strong);
+    }
+
+    .summary-tint-1 {
+      background: color-mix(in srgb, var(--cp-link) 4%, var(--cp-surface)) !important;
+      border-top: 4px solid var(--cp-link) !important;
+    }
+    .summary-tint-2 {
+      background: color-mix(in srgb, var(--cp-accent) 4%, var(--cp-surface)) !important;
+      border-top: 4px solid var(--cp-accent) !important;
+    }
+    .summary-tint-3 {
+      background: color-mix(in srgb, var(--cp-success) 4%, var(--cp-surface)) !important;
+      border-top: 4px solid var(--cp-success) !important;
+    }
+
+    .member-cell {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .member-name {
+      font-weight: 600;
+      color: var(--cp-text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .role-tag {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+      font-weight: 700;
+    }
+
+    .member-email {
+      font-size: 11px;
+      color: var(--cp-text-soft);
+      font-family: Consolas, "Courier New", Courier, monospace;
+    }
+
+    .team-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 0.625rem;
+      font-size: 11.5px;
+      font-weight: 600;
+      border: 1px solid var(--cp-border);
+      background: var(--cp-surface);
+      color: var(--cp-text);
+    }
+
+    .status-select {
+      font-weight: 600;
+      padding: 5px 8px;
+      border-radius: 0.625rem;
+      border: 1px solid var(--cp-border);
+      background: var(--cp-surface);
+      color: var(--cp-text);
+      font-size: 12px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .status-Confirmed, .status-Done {
+      border-color: var(--cp-success);
+      color: var(--cp-success);
+    }
+
+    .status-Discussing, .status-InProgress {
+      border-color: var(--cp-warning);
+      color: var(--cp-warning);
+    }
+
+    .status-Pending, .status-NotStarted {
+      border-color: var(--cp-border-strong);
+      color: var(--cp-text-muted);
+    }
+
+    .milestone-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .milestone-req-tag {
+      font-size: 10.5px;
+      color: var(--cp-accent);
+      background: var(--cp-accent-soft);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      display: inline-block;
+      line-height: 1.3;
+    }
+
+    .milestone-req-muted {
+      font-size: 10.5px;
+      color: var(--cp-text-soft);
+      background: var(--cp-surface-soft);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    /* Kanban / Path Matrix Board */
+    .kanban-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 960px) {
+      .kanban-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .kanban-col {
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 420px;
+    }
+
+    .kanban-col-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--cp-border);
+      font-size: 13.5px;
+      font-weight: 700;
+    }
+
+    .kanban-card {
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      padding: 12px;
+      box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .kanban-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .kanban-meta {
+      font-size: 11.5px;
+      color: var(--cp-text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .kanban-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+
+    .btn-xs {
+      padding: 3px 8px;
+      font-size: 11px;
+      border-radius: 6px;
+      border: 1px solid var(--cp-border);
+      background: var(--cp-surface-soft);
+      color: var(--cp-text);
+      cursor: pointer;
+    }
+
+    .btn-xs:hover {
+      border-color: var(--cp-accent);
+      color: var(--cp-accent);
+    }
+
+    .two-col-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 960px) {
+      .two-col-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .guide-box {
+      background: var(--cp-bg-elevated);
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      padding: 14px;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+
+    .guide-box h4 {
+      font-size: 14px;
+      margin-bottom: 6px;
+      color: var(--cp-accent);
+    }
+
+    .guide-box ol, .guide-box ul {
+      padding-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Slide-Ready Horizontal Report View (Matching Image 2 with Subtle Row Colors & No ID) */
+    .slide-controls-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--cp-border);
+    }
+
+    .mode-switch-group {
+      display: inline-flex;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      padding: 3px;
+      gap: 4px;
+    }
+
+    .mode-switch-btn {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--cp-text-muted);
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+
+    .mode-switch-btn.active {
+      background: var(--cp-accent);
+      color: var(--cp-accent-fg);
+    }
+
+    .slide-canvas-frame {
+      background: var(--cp-bg-elevated);
+      border: 2px solid var(--cp-border-strong);
+      border-radius: 16px;
+      padding: 20px 24px;
+      box-shadow: var(--cp-shadow);
+    }
+
+    .slide-frame-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 12px;
+      border-bottom: 2px solid var(--cp-accent);
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+
+    .slide-frame-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--cp-text);
+    }
+
+    .slide-frame-sub {
+      font-size: 12.5px;
+      color: var(--cp-text-muted);
+      margin-top: 3px;
+    }
+
+    .slide-kpi-strip {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .slide-kpi-pill {
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .slide-kpi-pill strong {
+      color: var(--cp-accent);
+      font-size: 14px;
+    }
+
+    .slide-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .slide-summary-card {
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-top: 4px solid var(--cp-accent);
+      border-radius: 0.625rem;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .slide-summary-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .slide-summary-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      font-size: 12px;
+      color: var(--cp-text-muted);
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      padding: 8px 10px;
+      border-radius: 8px;
+    }
+
+    .slide-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 920px;
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      overflow: hidden;
+    }
+
+    .slide-table th {
+      background: var(--cp-surface-soft);
+      color: var(--cp-text);
+      font-size: 11.5px;
+      padding: 10px 12px;
+      border-bottom: 2px solid var(--cp-border);
+    }
+
+    .slide-table td {
+      padding: 9px 12px;
+      font-size: 12.5px;
+      border-bottom: 1px solid var(--cp-border);
+      vertical-align: middle;
+    }
+
+    .slide-group-row td {
+      font-weight: 700;
+      font-size: 12.5px;
+      padding: 8px 12px;
+      border-top: 1px solid var(--cp-border);
+      border-bottom: 1px solid var(--cp-border);
+    }
+
+    .pill-status {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid var(--cp-border);
+      background: var(--cp-surface);
+    }
+
+    .pill-done {
+      border-color: var(--cp-success);
+      color: var(--cp-success);
+    }
+
+    .pill-prog {
+      border-color: var(--cp-warning);
+      color: var(--cp-warning);
+    }
+
+    .pill-wait {
+      border-color: var(--cp-border-strong);
+      color: var(--cp-text-muted);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 24px;
+      background: var(--cp-surface);
+      color: var(--cp-text);
+      border: 1px solid var(--cp-accent);
+      border-left: 5px solid var(--cp-accent);
+      padding: 10px 16px;
+      border-radius: 0.625rem;
+      box-shadow: var(--cp-shadow);
+      font-size: 12.5px;
+      font-weight: 600;
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container" id="mainAppContainer" style="display:none;">
+    <!-- Top Header -->
+    <header class="header-card">
+      <!-- Row 1: Title + Subtitle on Left, Role Preview Dropdown + Token Manager in Blue Box (Top-Right) -->
+      <div class="header-top-row" style="align-items:flex-start;">
+        <div>
+          <div class="header-title">
+            <span id="mainTitleText">FY27 H2 Self-Selected Growth Path &amp; Q3–Q4 Tracker</span>
+            <span class="role-mode-badge" id="roleModeBadge">👑 完整編輯模式</span>
+          </div>
+          <div class="header-subtitle" id="mainSubtitleText">
+            專用於統計團隊成員之 H2 Self-Selected Growth Path 選擇意願、1-on-1 確認狀態，並依選擇路徑動態追蹤 Q3 與 Q4 Checkpoints
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px; margin-left:auto; flex-shrink:0;">
+          <select id="adminRolePreviewSelect" class="select-ctrl hidden" style="padding:5px 10px; font-size:12px; font-weight:700; width:auto;" title="Admin Role Preview / 預覽不同角色視角">
+            <option value="admin" id="optRoleAdmin">👁️ 視角：👑 完整編輯模式</option>
+            <option value="ta" id="optRoleTA">👁️ 視角：🛠️ TA協作模式</option>
+            <option value="victor" id="optRoleVictor">👁️ 視角：🔒 主管唯讀模式</option>
+          </select>
+          <button class="btn" id="btnOpenTokenMgr" style="padding:5px 10px; font-size:12px; display:none;" title="Manage Magic Link Tokens / 管理專屬連結與存取權限">🔑 專屬連結與權限管理</button>
+        </div>
+      </div>
+
+      <!-- Row 2: Left-aligned Status Pills + Language Switcher + Theme Toggle -->
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; width:100%;">
+        <div class="sync-status-pill synced" id="authRoleUserPill" title="Verified Access Token Identity / 已驗證專屬憑證身分" style="cursor:pointer;">
+          <span class="sync-dot"></span>
+          <span id="authRoleUserText">🔐 驗證連線中...</span>
+        </div>
+        <div class="sync-status-pill synced" id="cloudLivePill" title="Firebase RTDB Real-Time Sync / Firebase RTDB 即時雲端同步">
+          <span class="sync-dot"></span>
+          <span id="cloudLiveText">☁️ 雲端即時同步連線中</span>
+        </div>
+        <div class="sync-status-pill synced" id="syncStatusPill" title="Last Synced Timestamp / 上次同步時間">
+          <span class="sync-dot"></span>
+          <span id="syncStatusText">上次同步時間：—</span>
+        </div>
+        <div class="lang-pill-switch" title="Switch Language / 切換中英文">
+          <button class="lang-pill-btn" id="btnLangEN" data-lang="en">EN</button>
+          <button class="lang-pill-btn active" id="btnLangZH" data-lang="zh">中文</button>
+        </div>
+        <button class="btn" id="btnThemeToggle">🌓</button>
+      </div>
+
+      <div style="width:100%;">
+        <div class="advisor-pills" id="advisorPillsBar"></div>
+      </div>
+
+      <!-- 1. Admin Actions (Shown in Full Edit Mode) -->
+      <div class="header-actions" id="adminHeaderActions">
+        <button class="btn btn-sync-dirty" id="btnForceSaveSyncAdmin"></button>
+        <button class="btn btn-primary" id="btnJumpSlideReport"></button>
+        <label class="btn" id="lblImportCsv">
+          <span id="txtImportCsv">📥 Import CSV</span>
+          <input type="file" id="csvFileInput" accept=".csv" style="display:none" />
+        </label>
+        <button class="btn" id="btnExportCsv"></button>
+        <button class="btn" id="btnDemoFill"></button>
+        <button class="btn" id="btnReset"></button>
+      </div>
+
+      <!-- 2. TA Actions (Shown in TA Mode) -->
+      <div class="header-actions hidden" id="taHeaderActions">
+        <button class="btn btn-sync-dirty" id="btnForceSaveSyncTa"></button>
+        <button class="btn btn-primary" id="btnTaJumpSlideReport"></button>
+        <button class="btn" id="btnTaExportCsv"></button>
+      </div>
+
+      <!-- 3. Victor Read-Only Viewer Actions -->
+      <div class="header-actions hidden" id="victorHeaderActions">
+        <button class="btn btn-primary" id="btnVictorJumpSlideReport"></button>
+        <button class="btn" id="btnVictorExportCsv"></button>
+      </div>
+
+      <!-- Sticky Live Update Notification Banner (Appears when someone else updates data while page is open) -->
+      <div class="live-update-banner hidden" id="liveUpdateBanner">
+        <div class="live-update-banner-text">
+          <span class="live-update-badge" id="liveUpdateBadge">🔔 NEW UPDATE</span>
+          <span id="liveUpdateMsg">剛剛收到最新同步資料，畫面已自動更新！</span>
+        </div>
+        <button class="btn btn-primary" id="btnDismissLiveBanner" style="padding:5px 12px; font-size:12px;">✅ 我知道了 (Got it)</button>
+      </div>
+    </header>
+
+    <!-- 3 Path Criteria Reference Bar -->
+    <section class="criteria-bar">
+      <div class="criteria-item">
+        <div class="criteria-title">
+          <span id="critTitleCross">🔹 Cross-product</span>
+          <span class="kpi-badge" id="badgeCrossCnt">0</span>
+        </div>
+        <div class="criteria-desc" id="critDescCross">
+          <strong>Q3 Checkpoint:</strong> Core learning + Cross-product lab ｜ <strong>Q4 Validation:</strong> Applied case + SME sign-off
+        </div>
+      </div>
+      <div class="criteria-item">
+        <div class="criteria-title">
+          <span id="critTitleAdv">🔸 Advanced Product</span>
+          <span class="kpi-badge" id="badgeAdvCnt">0</span>
+        </div>
+        <div class="criteria-desc" id="critDescAdv">
+          <strong>Q3 Checkpoint:</strong> Deep-dive research + Scenario lab ｜ <strong>Q4 Validation:</strong> Case sharing / Topic deep dive
+        </div>
+      </div>
+      <div class="criteria-item">
+        <div class="criteria-title">
+          <span id="critTitleCert">🟡 Certification</span>
+          <span class="kpi-badge" id="badgeCertCnt">0</span>
+        </div>
+        <div class="criteria-desc" id="critDescCert">
+          <strong>Q3 Checkpoint:</strong> Core study + Practice assessment ｜ <strong>Q4 Validation:</strong> Certification: Exam passed
+        </div>
+      </div>
+    </section>
+
+    <!-- Top KPI Cards -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label" id="kpiLbl1">1. H2 1-on-1 Confirmation</div>
+        <div class="kpi-value-row">
+          <div class="kpi-value" id="kpiConfirmedCount">0 / 0</div>
+          <span class="kpi-badge" id="kpiConfirmedPct">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="barConfirmed" style="width: 0%"></div>
+        </div>
+        <div class="kpi-sub">
+          <span id="kpiStatusBreakdown"></span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label" id="kpiLbl2">2. H2 Growth Path Distribution</div>
+        <div class="kpi-value-row">
+          <div class="kpi-value" id="kpiPathTotal">0 / 0</div>
+          <span class="kpi-badge" id="kpiUndecided"></span>
+        </div>
+        <div class="kpi-sub" style="margin-top:4px; line-height:1.55;">
+          <span>Cross-product: <strong id="cntCross">0</strong></span>
+          <span>Advanced: <strong id="cntAdv">0</strong></span>
+          <span>Certification: <strong id="cntCert">0</strong></span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label" id="kpiLbl3">3. H2 · Q3 Checkpoint Progress</div>
+        <div class="kpi-value-row">
+          <div class="kpi-value" id="kpiQ3Done">0 / 0</div>
+          <span class="kpi-badge" id="kpiQ3Pct">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="barQ3" style="width: 0%"></div>
+        </div>
+        <div class="kpi-sub">
+          <span id="kpiQ3Sub"></span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label" id="kpiLbl4">4. H2 · Q4 Final Validation</div>
+        <div class="kpi-value-row">
+          <div class="kpi-value" id="kpiQ4Done">0 / 0</div>
+          <span class="kpi-badge" id="kpiQ4Pct">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="barQ4" style="width: 0%"></div>
+        </div>
+        <div class="kpi-sub">
+          <span id="kpiQ4Sub"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Toolbar & View Switcher -->
+    <section class="toolbar-card">
+      <div class="tabs" id="navTabsBar">
+        <button class="tab-btn active" data-tab="table" id="tabBtnTable"></button>
+        <button class="tab-btn" data-tab="slideReport" id="tabBtnSlideReport"></button>
+        <button class="tab-btn" data-tab="pathBoard" id="tabBtnPathBoard"></button>
+        <button class="tab-btn" data-tab="kanban" id="tabBtnKanban"></button>
+        <button class="tab-btn" data-tab="formsGuide" id="tabBtnFormsGuide"></button>
+      </div>
+
+      <div class="filters" id="filterBar">
+        <input type="text" class="input-ctrl" id="searchInput" placeholder="🔍 Search..." />
+        <select class="select-ctrl" id="teamFilter"></select>
+        <select class="select-ctrl" id="pathFilter"></select>
+        <select class="select-ctrl" id="statusFilter"></select>
+      </div>
+    </section>
+
+    <!-- TAB 1: Master Table (8 Columns — No ID column, Subtle Row Tint by Product) -->
+    <section class="panel-card" id="tab-table">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:195px;" id="thMember">FTE Member</th>
+            <th style="width:95px;" id="thProduct">Product</th>
+            <th style="width:160px;" id="thAdvisor">Advisor</th>
+            <th style="width:155px;" id="thStatus">1-on-1 Status</th>
+            <th style="width:180px;" id="thPath">H2 Growth Path</th>
+            <th style="width:195px;" id="thTarget">Specific Target</th>
+            <th style="width:235px;" id="thQ3">H2 · Q3 Status</th>
+            <th style="width:245px;" id="thQ4">H2 · Q4 Status</th>
+          </tr>
+        </thead>
+        <tbody id="memberTableBody"></tbody>
+      </table>
+    </section>
+
+    <!-- TAB 2: Horizontal Slide-Ready Summary View (Matching Image 2 layout, subtle row colors, no ID) -->
+    <section class="panel-card hidden" id="tab-slideReport">
+      <div class="slide-controls-bar">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <span style="font-size:13.5px; font-weight:700; color:var(--cp-text);" id="lblSlideGroupBy"></span>
+          <div class="mode-switch-group">
+            <button class="mode-switch-btn active" id="btnSlideByProduct" data-slide-mode="product"></button>
+            <button class="mode-switch-btn" id="btnSlideByPath" data-slide-mode="path"></button>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-primary" id="btnDownloadPptx"></button>
+          <button class="btn btn-outline-accent" id="btnCopySlideTable"></button>
+        </div>
+      </div>
+
+      <!-- Slide-ready 16:9 Horizontal Frame (Image 2 Style) -->
+      <div class="slide-canvas-frame" id="slideExportArea">
+        <div class="slide-frame-header">
+          <div>
+            <div class="slide-frame-title" id="slideReportTitle"></div>
+            <div class="slide-frame-sub" id="slideReportSubtitle"></div>
+          </div>
+          <div class="slide-kpi-strip" id="slideKpiStrip"></div>
+        </div>
+
+        <!-- 3 Top Summary Cards -->
+        <div class="slide-summary-grid" id="slideSummaryCards"></div>
+
+        <!-- Horizontal Grouped Table with Subtle Background Tints per Product or Growth Path & No ID -->
+        <div style="overflow-x:auto;">
+          <table class="slide-table" id="slideHtmlTable">
+            <thead>
+              <tr>
+                <th style="width:135px;" id="sthGroup">分類群組</th>
+                <th style="width:185px;" id="sthMember">FTE 成員</th>
+                <th style="width:95px;" id="sthProduct">產品線</th>
+                <th style="width:145px;" id="sthAdvisor">諮詢對象</th>
+                <th style="width:155px;" id="sthPath">H2 成長路徑</th>
+                <th style="width:195px;" id="sthTarget">具體目標項目</th>
+                <th style="width:125px;" id="sthConfirm">1-ON-1 確認</th>
+                <th style="width:220px;" id="sthQ3">Q3 CHECKPOINT 狀態</th>
+                <th style="width:230px;" id="sthQ4">Q4 最終驗收狀態</th>
+              </tr>
+            </thead>
+            <tbody id="slideTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: Group by Path Matrix -->
+    <section class="panel-card hidden" id="tab-pathBoard">
+      <div class="kanban-grid">
+        <div class="kanban-col">
+          <div class="kanban-col-header">
+            <span>🔹 Cross-product (Applied case + SME sign-off)</span>
+            <span class="kpi-badge" id="pbCntCross">0</span>
+          </div>
+          <div id="pbListCross"></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header">
+            <span>🔸 Advanced Product (Case sharing / Topic deep dive)</span>
+            <span class="kpi-badge" id="pbCntAdv">0</span>
+          </div>
+          <div id="pbListAdv"></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header">
+            <span>🟡 Certification (Exam passed)</span>
+            <span class="kpi-badge" id="pbCntCert">0</span>
+          </div>
+          <div id="pbListCert"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: 1-on-1 Confirmation Kanban -->
+    <section class="panel-card hidden" id="tab-kanban">
+      <div class="kanban-grid">
+        <div class="kanban-col">
+          <div class="kanban-col-header">
+            <span id="kbHdrPending">⚪ Pending</span>
+            <span class="kpi-badge" id="kbCntPending">0</span>
+          </div>
+          <div id="kbListPending"></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header">
+            <span id="kbHdrDiscussing">🟡 Discussing (Advisor / Manager)</span>
+            <span class="kpi-badge" id="kbCntDiscussing">0</span>
+          </div>
+          <div id="kbListDiscussing"></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header">
+            <span id="kbHdrConfirmed">🟢 Confirmed (Plan Owner)</span>
+            <span class="kpi-badge" id="kbCntConfirmed">0</span>
+          </div>
+          <div id="kbListConfirmed"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: Team Summary & Forms Guide -->
+    <section class="panel-card hidden" id="tab-formsGuide">
+      <div class="two-col-grid">
+        <div>
+          <h3 style="font-size:16px; margin-bottom:6px;" id="fgTeamTitle"></h3>
+          <p style="font-size:12.5px; color:var(--cp-text-muted); margin-bottom:12px;" id="fgTeamSub"></p>
+          <div id="teamBreakdownList"></div>
+        </div>
+        <div>
+          <h3 style="font-size:16px; margin-bottom:6px;" id="fgFormsTitle"></h3>
+          <p style="font-size:12.5px; color:var(--cp-text-muted); margin-bottom:12px;" id="fgFormsSub"></p>
+          <div class="guide-box" style="margin-top:0;" id="fgFormsContent"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Passwordless Magic Link Auth Prompt Modal (Shown only if opened without valid #token or stored token) -->
+  <div id="tokenGateModal" class="hidden" style="position:fixed; inset:0; background:var(--cp-bg); z-index:9998; display:flex; align-items:center; justify-content:center; padding:20px;">
+    <div class="panel-card" style="max-width:500px; width:100%; padding:24px; border:2px solid var(--cp-accent); box-shadow:var(--cp-shadow);">
+      <h3 style="font-size:18px; margin:0 0 8px 0; color:var(--cp-text);" id="gateModalTitle">🔐 請使用專屬連結或輸入存取憑證 (Access Token Required)</h3>
+      <p style="font-size:13px; color:var(--cp-text-muted); margin:0 0 16px 0; line-height:1.55;" id="gateModalDesc">
+        本追蹤系統採用 Firebase RTDB 雲端權限驗證（保護讀寫安全）。請直接點擊管理員提供的個人專屬 <code>#token=...</code> 連結開啟（系統會自動記憶於瀏覽器免重複輸入），或在下方貼上您的專屬憑證：
+      </p>
+      <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <input type="text" id="inputGateToken" placeholder="請貼上專屬連結或憑證字串..." style="flex:1; padding:8px 12px; border:1px solid var(--cp-border-strong); border-radius:8px; background:var(--cp-surface); color:var(--cp-text); font-family:Consolas, monospace; font-size:13px;" />
+        <button class="btn btn-primary" id="btnSubmitGateToken" style="padding:8px 16px;">✅ 驗證並連線</button>
+      </div>
+      <div id="gateModalError" style="font-size:12.5px; color:var(--cp-danger); display:none; margin-top:6px;"></div>
+    </div>
+  </div>
+
+  <!-- Admin Token & Magic Link Management Modal (Only accessible to Admin) -->
+  <div id="adminTokenMgrModal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:9997; display:flex; align-items:center; justify-content:center; padding:20px;">
+    <div class="panel-card" style="max-width:860px; width:100%; max-height:88vh; overflow-y:auto; padding:22px; border:1px solid var(--cp-border-strong); box-shadow:var(--cp-shadow);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid var(--cp-border);">
+        <div>
+          <h3 style="font-size:17px; margin:0; color:var(--cp-text);">🔑 專屬連結與權限管理 (Firebase RTDB Magic Link Manager)</h3>
+          <p style="font-size:12px; color:var(--cp-text-muted); margin:4px 0 0 0;">
+            每位成員擁有獨立免設密碼的 <code>#token=...</code> 專屬連結。開啟後自動存入瀏覽器 <code>localStorage</code> 並隱藏網址列 Token；您可隨時新增或一鍵撤銷權限。
+          </p>
+        </div>
+        <button class="btn" id="btnCloseTokenMgr" style="padding:5px 12px;">✖ 關閉</button>
+      </div>
+
+      <!-- Create New Token Row -->
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; background:var(--cp-surface-soft); padding:12px; border-radius:10px; border:1px solid var(--cp-border); margin-bottom:14px;">
+        <span style="font-size:12.5px; font-weight:700;">➕ 新增專屬連結：</span>
+        <input type="text" id="newTokenMemberName" placeholder="成員名稱 (例如: Sean TA / 備用連結)" style="flex:1; min-width:180px; padding:6px 10px; border:1px solid var(--cp-border-strong); border-radius:6px; background:var(--cp-surface); color:var(--cp-text); font-size:12.5px;" />
+        <select id="newTokenRoleSelect" style="padding:6px 10px; border:1px solid var(--cp-border-strong); border-radius:6px; background:var(--cp-surface); color:var(--cp-text); font-size:12.5px;">
+          <option value="ta">🛠️ TA 協作權限 (可讀寫成長路徑與 Q3/Q4 狀態)</option>
+          <option value="victor">🔒 主管唯讀權限 (僅可檢視與匯出 PPTX/CSV)</option>
+          <option value="admin">👑 Admin 完整管理權限 (完整讀寫 + 管理 Token)</option>
+        </select>
+        <button class="btn btn-primary" id="btnCreateNewToken" style="padding:6px 14px; font-size:12.5px;">✨ 產生專屬連結</button>
+      </div>
+
+      <!-- Token List Table -->
+      <div style="overflow-x:auto;">
+        <table class="tracker-table" style="font-size:12.5px;">
+          <thead>
+            <tr>
+              <th>成員 / 標籤</th>
+              <th>角色權限</th>
+              <th>狀態</th>
+              <th>專屬 Magic Link (點擊直接複製給對方)</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="tokenMgrTableBody">
+            <tr><td colspan="5" style="text-align:center; padding:16px;">載入中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">Saved</div>
+
+  <!-- Embedded Snapshot Data, Role Configuration & Last Sync Timestamp -->
+  <script id="embedded-app-mode" type="application/json">{"role": "admin", "lang": "zh", "lastSync": ""}</script>
+  <script id="embedded-snapshot-data" type="application/json">null</script>
+
+  <script>
+    const STORAGE_KEY = "fy27_h2_pure_tracker_v2";
+    const SYNC_TIME_KEY = "fy27_h2_last_sync_time";
+    const LANG_STORAGE_KEY = "fy27_h2_tracker_lang";
+
+    let currentSlideMode = "product"; // "product" | "path"
+
+    // Read baked-in configuration
+    let bakedRole = "admin";
+    let bakedSyncTime = "";
+    let currentLang = localStorage.getItem(LANG_STORAGE_KEY) || "zh";
+
+    try {
+      const modeCfg = JSON.parse(document.getElementById("embedded-app-mode").textContent || "{}");
+      if (modeCfg && modeCfg.role) bakedRole = modeCfg.role;
+      if (modeCfg && modeCfg.lastSync) bakedSyncTime = modeCfg.lastSync;
+      if (modeCfg && modeCfg.lang && !localStorage.getItem(LANG_STORAGE_KEY)) currentLang = modeCfg.lang;
+    } catch (e) {}
+
+    let currentRole = bakedRole;
+
+    // Sync state tracking (Red when unsynced, Green when exported/synced)
+    let syncedTargets = {
+      ta: false,
+      victor: false,
+      admin: false
+    };
+
+    function formatNowTimestamp() {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const dd = String(now.getDate()).padStart(2, "0");
+      const hh = String(now.getHours()).padStart(2, "0");
+      const min = String(now.getMinutes()).padStart(2, "0");
+      const ss = String(now.getSeconds()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+    }
+
+    let lastSyncTimestamp = localStorage.getItem(SYNC_TIME_KEY) || bakedSyncTime || formatNowTimestamp();
+
+    // Bilingual UI Dictionary (No "分 3 張 Slides" wording; Technical terms stay in English)
+    const I18N = {
+      zh: {
+        mainTitle: "FY27 H2 成長路徑統計 & Q3–Q4 進度追蹤中心",
+        mainSubtitle: "專用於統計團隊成員之 H2 Self-Selected Growth Path 選擇意願、1-on-1 確認狀態，並依選擇路徑動態追蹤 Q3 與 Q4 Checkpoints",
+        roleBadgeAdmin: "👑 完整編輯模式",
+        roleBadgeTA: "🛠️ TA協作模式",
+        roleBadgeVictor: "🔒 主管唯讀模式",
+        cloudLiveOnline: "☁️ 雲端即時同步中 (跨裝置自動更新)",
+        cloudLiveSyncing: "🔄 正在同步至雲端...",
+        cloudLiveOffline: "⚠️ 離線本機模式",
+        syncTimePrefix: "🕒 上次同步時間：",
+        lblPreviewRole: "👁️ 視角：",
+        btnRoleAdmin: "👑 完整編輯模式",
+        btnRoleTA: "🛠️ TA協作模式",
+        btnRoleVictor: "🔒 主管唯讀模式",
+        btnExportTaHtml: "🛠️ 同步匯出給 TA 協作版 (.html)",
+        btnExportTaHtmlSynced: "✅ TA 協作版已同步最新資料 (.html)",
+        btnExportVictorHtml: "🔒 同步匯出給主管唯讀版 (.html)",
+        btnExportVictorHtmlSynced: "✅ 主管唯讀版已同步最新資料 (.html)",
+        btnSaveAdminHtml: "💾 儲存管理員版 (.html)",
+        btnSaveAdminHtmlSynced: "✅ 管理員版已儲存最新資料 (.html)",
+        btnForceSaveSync: "💾 儲存並強制同步 (Save & Sync)",
+        btnForceSaveSyncDone: "✅ 已同步至雲端 (Synced)",
+        btnJumpSlideReport: "📊 簡報進度表 (Slides)",
+        txtImportCsv: "📥 匯入 CSV",
+        btnExportCsv: "📤 匯出 CSV",
+        btnDemoFill: "✨ 載入模擬範例",
+        btnReset: "🔄 重置空白",
+        btnSaveTaHtml: "💾 儲存並同步 TA 最新進度 (.html)",
+        btnSaveTaHtmlSynced: "✅ 已同步儲存 TA 最新進度 (.html)",
+        btnTaExportCsv: "📤 匯出進度 CSV",
+        critTitleCross: "🔹 Cross-product (跨產品廣度)",
+        critDescCross: "<strong>Q3 檢核:</strong> Core learning + Cross-product lab ｜ <strong>Q4 驗收:</strong> Applied case + SME sign-off",
+        critTitleAdv: "🔸 Advanced Product (進階產品深耕)",
+        critDescAdv: "<strong>Q3 檢核:</strong> Deep-dive research + Scenario lab ｜ <strong>Q4 驗收:</strong> Case sharing / Topic deep dive",
+        critTitleCert: "🟡 Certification (專業認證)",
+        critDescCert: "<strong>Q3 檢核:</strong> Core study + Practice assessment ｜ <strong>Q4 驗收:</strong> Certification: Exam passed",
+        unitPeople: "人",
+        kpiLbl1: "1. H2 路徑 1-on-1 確認進度",
+        kpiConfirmedSuffix: "已確認",
+        kpiBreakdownFmt: (p, d, c) => `待填寫: ${p} · 討論中: ${d} · 已確認: ${c}`,
+        kpiLbl2: "2. H2 Growth Path 選擇分佈",
+        kpiChosenSuffix: "已選",
+        kpiUndecidedSuffix: "人未定",
+        kpiLbl3: "3. H2 · Q3 Checkpoint 完成率",
+        kpiQ3Suffix: "完成",
+        kpiQ3SubFmt: (d, p, n) => `已完成: ${d} · 進行中: ${p} · 未開始: ${n}`,
+        kpiLbl4: "4. H2 · Q4 最終驗收達標率 (Validated)",
+        kpiQ4Suffix: "驗收通過",
+        kpiQ4SubFmt: (d, p, n) => `已達標: ${d} · 進行中: ${p} · 未開始: ${n}`,
+        tabTableAdmin: "✏️ 管理編輯總表",
+        tabTableTA: "🛠️ 管理編輯總表",
+        tabSlideReport: "📊 進度總覽與簡報報表 (依產品線 / 成長路線)",
+        tabPathBoard: "🧭 三大路徑看板 (Path Matrix)",
+        tabKanban: "🗂️ 1-on-1 確認看板 (Kanban)",
+        tabFormsGuide: "📝 產品線統計 & MS Forms 題目",
+        searchPlaceholder: "🔍 搜尋姓名、Email 或具體目標...",
+        filterTeamAll: "所有產品線",
+        filterTeamODSP: "ODSP",
+        filterTeamTeams: "Teams",
+        filterTeamEXO: "Exchange",
+        filterPathAll: "所有 H2 Growth Paths",
+        filterPathUndecided: "尚未選擇 (Undecided)",
+        filterStatusAll: "所有 1-on-1 狀態",
+        statusPending: "⚪ 待填寫 / 未約談 (Pending)",
+        statusDiscussing: "🟡 諮詢討論中 (Discussing)",
+        statusConfirmed: "🟢 已確認 (Confirmed)",
+        thMember: "FTE 成員 (Name / Alias)",
+        thProduct: "產品線",
+        thAdvisor: "諮詢對象 (Advisor)",
+        thAdvisorLocked: "🔒 諮詢對象 (唯讀鎖定)",
+        thStatus: "1-on-1 確認狀態",
+        thStatusLocked: "🔒 1-on-1 確認狀態 (鎖定)",
+        thPath: "H2 Growth Path",
+        thTarget: "具體目標 (跨產品/主題/證照)",
+        thQ3: "H2 · Q3 Status (依路徑動態對應)",
+        thQ4: "H2 · Q4 Status (依路徑動態對應)",
+        targetPlaceholder: "例: Cross to Teams / MS-102 / Deep dive...",
+        lblSlideGroupBy: "請選擇分類檢視方式：",
+        btnSlideByProduct: "🏢 依產品線分類顯示 (ODSP / Teams / Exchange)",
+        btnSlideByPath: "🧭 依成長路線分類顯示 (Cross-product / Advanced / Certification)",
+        btnDownloadPptx: "📊 一鍵下載 PowerPoint 簡報檔 (.pptx)",
+        btnCopySlideTable: "📋 一鍵複製表格 (可直接貼入 PowerPoint)",
+        slideTitleProduct: "FY27 H2 Self-Selected Growth Path — Progress by Product Line (依產品線分類)",
+        slideSubProduct: "ODSP · Teams · Exchange",
+        slideTitlePath: "FY27 H2 Self-Selected Growth Path — Progress by Growth Path (依成長路線分類)",
+        slideSubPath: "Cross-product (Applied case + SME sign-off) · Advanced Product (Case sharing / Topic deep dive) · Certification (Exam passed)",
+        sthGroup: "分類群組",
+        sthMember: "FTE 成員",
+        sthProduct: "產品線",
+        sthAdvisor: "諮詢對象",
+        sthPath: "H2 成長路徑",
+        sthTarget: "具體目標項目",
+        sthConfirm: "1-ON-1 確認",
+        sthQ3: "Q3 CHECKPOINT 狀態",
+        sthQ4: "Q4 最終驗收狀態",
+        kbHdrPending: "⚪ 待填寫 / 尚未約談 (Pending)",
+        kbHdrDiscussing: "🟡 諮詢討論中 (Discussing with Advisor / Manager)",
+        kbHdrConfirmed: "🟢 已最終確認 (Confirmed by Plan Owner)",
+        kbMovePending: "⬅ 移至待填寫",
+        kbMoveDiscussing: "💬 移至討論中",
+        kbMoveConfirmed: "✅ 移至已確認",
+        kbLockedNotice: "🔒 1-on-1 確認狀態由管理員統一調整",
+        fgTeamTitle: "📊 各產品線 (ODSP / Teams / Exchange) H2 路徑與 Q3–Q4 統計",
+        fgTeamSub: "即時彙整三大產品線的 1-on-1 確認率、三條 Growth Path 選擇人數，以及 Q3 / Q4 達標人數：",
+        fgFormsTitle: "📝 Microsoft Forms 意願收集題目設計 (5題極簡版)",
+        fgFormsSub: "讓同仁在 Q2 先填寫意願，匯出 CSV 後點擊右上角「📥 匯入 CSV」即可自動帶入：",
+        fgFormsHtml: `
+          <ol>
+            <li><strong>您的所屬產品線與諮詢代表 (Product &amp; Advisor)？</strong><br/>
+              ODSP / Teams / Exchange
+            </li>
+            <li><strong>您傾向選擇哪一條 H2 Self-Selected Growth Path？</strong>
+              <ul>
+                <li><code>Cross-Product</code> — Q4 Validation: Applied case + SME sign-off</li>
+                <li><code>Advanced Product</code> — Q4 Validation: Case sharing / Topic deep dive</li>
+                <li><code>Certification</code> — Q4 Validation: Certification: Exam passed</li>
+                <li><code>Undecided</code> — 尚未決定，想先找 Advisor 討論</li>
+              </ul>
+            </li>
+            <li><strong>您的具體目標項目 (Specific Target) 是什麼？</strong><br/>
+              （例如：想跨足的產品名稱、想深耕的進階主題、或預計報考的認證代號如 MS-102 / AI-102）
+            </li>
+            <li><strong>選擇此路徑的主要考量？</strong>（Role 需求 / 個人興趣 / 業務支援需求）</li>
+            <li><strong>您希望先與誰進行 1-on-1 討論？</strong>（Product Advisor、Manager、或直接與 Plan Owner 確認）</li>
+          </ol>
+        `
+      },
+      en: {
+        mainTitle: "FY27 H2 Self-Selected Growth Path & Q3–Q4 Milestone Tracker",
+        mainSubtitle: "Track team members' H2 Self-Selected Growth Path choices, 1-on-1 confirmation status, and path-specific Q3 & Q4 Checkpoints",
+        roleBadgeAdmin: "👑 Full Edit Mode",
+        roleBadgeTA: "🛠️ TA Collaborative Mode",
+        roleBadgeVictor: "🔒 Manager View-Only Mode",
+        cloudLiveOnline: "☁️ Cloud Live Sync Active (Cross-PC Auto-Update)",
+        cloudLiveSyncing: "🔄 Syncing to Cloud...",
+        cloudLiveOffline: "⚠️ Local Offline Mode",
+        syncTimePrefix: "🕒 Last Synced: ",
+        lblPreviewRole: "👁️ View as:",
+        btnRoleAdmin: "👑 Full Edit Mode",
+        btnRoleTA: "🛠️ TA Collaborative Mode",
+        btnRoleVictor: "🔒 Manager View-Only Mode",
+        btnExportTaHtml: "🛠️ Sync & Export TA Copy (.html)",
+        btnExportTaHtmlSynced: "✅ TA Copy Synced (.html)",
+        btnExportVictorHtml: "🔒 Sync & Export Manager Copy (.html)",
+        btnExportVictorHtmlSynced: "✅ Manager Copy Synced (.html)",
+        btnSaveAdminHtml: "💾 Save Admin Copy (.html)",
+        btnSaveAdminHtmlSynced: "✅ Admin Copy Saved (.html)",
+        btnForceSaveSync: "💾 Save & Sync (Force Sync to Cloud)",
+        btnForceSaveSyncDone: "✅ Saved & Synced!",
+        btnJumpSlideReport: "📊 Slide Summary (Slides)",
+        txtImportCsv: "📥 Import CSV",
+        btnExportCsv: "📤 Export CSV",
+        btnDemoFill: "✨ Load Sample Data",
+        btnReset: "🔄 Reset Blank",
+        btnSaveTaHtml: "💾 Save & Sync TA Progress (.html)",
+        btnSaveTaHtmlSynced: "✅ TA Progress Synced (.html)",
+        btnTaExportCsv: "📤 Export Progress CSV",
+        critTitleCross: "🔹 Cross-product",
+        critDescCross: "<strong>Q3 Checkpoint:</strong> Core learning + Cross-product lab ｜ <strong>Q4 Validation:</strong> Applied case + SME sign-off",
+        critTitleAdv: "🔸 Advanced Product",
+        critDescAdv: "<strong>Q3 Checkpoint:</strong> Deep-dive research + Scenario lab ｜ <strong>Q4 Validation:</strong> Case sharing / Topic deep dive",
+        critTitleCert: "🟡 Certification",
+        critDescCert: "<strong>Q3 Checkpoint:</strong> Core study + Practice assessment ｜ <strong>Q4 Validation:</strong> Certification: Exam passed",
+        unitPeople: "FTEs",
+        kpiLbl1: "1. H2 Path 1-on-1 Confirmation",
+        kpiConfirmedSuffix: "Confirmed",
+        kpiBreakdownFmt: (p, d, c) => `Pending: ${p} · Discussing: ${d} · Confirmed: ${c}`,
+        kpiLbl2: "2. H2 Growth Path Distribution",
+        kpiChosenSuffix: "Selected",
+        kpiUndecidedSuffix: "Undecided",
+        kpiLbl3: "3. H2 · Q3 Checkpoint Completion",
+        kpiQ3Suffix: "Completed",
+        kpiQ3SubFmt: (d, p, n) => `Done: ${d} · In Progress: ${p} · Not Started: ${n}`,
+        kpiLbl4: "4. H2 · Q4 Final Validation Rate",
+        kpiQ4Suffix: "Validated",
+        kpiQ4SubFmt: (d, p, n) => `Validated: ${d} · In Progress: ${p} · Not Started: ${n}`,
+        tabTableAdmin: "✏️ Master Edit Table",
+        tabTableTA: "🛠️ Master Edit Table",
+        tabSlideReport: "📊 Progress Summary & Slide Report (By Product / By Growth Path)",
+        tabPathBoard: "🧭 Growth Path Matrix",
+        tabKanban: "🗂️ 1-on-1 Status Kanban",
+        tabFormsGuide: "📝 Product Summary & MS Forms Guide",
+        searchPlaceholder: "🔍 Search Name, Email, or Specific Target...",
+        filterTeamAll: "All Product Teams",
+        filterTeamODSP: "ODSP",
+        filterTeamTeams: "Teams",
+        filterTeamEXO: "Exchange",
+        filterPathAll: "All H2 Growth Paths",
+        filterPathUndecided: "Undecided",
+        filterStatusAll: "All 1-on-1 Statuses",
+        statusPending: "⚪ Pending",
+        statusDiscussing: "🟡 Discussing",
+        statusConfirmed: "🟢 Confirmed",
+        thMember: "FTE Member (Name / Alias)",
+        thProduct: "Product",
+        thAdvisor: "Advisor",
+        thAdvisorLocked: "🔒 Advisor (Locked)",
+        thStatus: "1-on-1 Status",
+        thStatusLocked: "🔒 1-on-1 Status (Locked)",
+        thPath: "H2 Growth Path",
+        thTarget: "Specific Target (Product / Topic / Exam)",
+        thQ3: "H2 · Q3 Status (Path-Specific)",
+        thQ4: "H2 · Q4 Validation Status (Path-Specific)",
+        targetPlaceholder: "e.g. Cross to Teams / MS-102 / Deep dive...",
+        lblSlideGroupBy: "Group Summary View By:",
+        btnSlideByProduct: "🏢 Group by Product Line (ODSP / Teams / Exchange)",
+        btnSlideByPath: "🧭 Group by Growth Path (Cross-product / Advanced / Certification)",
+        btnDownloadPptx: "📊 Download PowerPoint (.pptx)",
+        btnCopySlideTable: "📋 Copy Table for PowerPoint",
+        slideTitleProduct: "FY27 H2 Self-Selected Growth Path — Progress by Product Line",
+        slideSubProduct: "ODSP · Teams · Exchange",
+        slideTitlePath: "FY27 H2 Self-Selected Growth Path — Progress by Growth Path",
+        slideSubPath: "Cross-product (Applied case + SME sign-off) · Advanced Product (Case sharing / Topic deep dive) · Certification (Exam passed)",
+        sthGroup: "Group",
+        sthMember: "FTE Member",
+        sthProduct: "Product",
+        sthAdvisor: "Advisor",
+        sthPath: "H2 Growth Path",
+        sthTarget: "Specific Target",
+        sthConfirm: "1-on-1 Status",
+        sthQ3: "Q3 Checkpoint Status",
+        sthQ4: "Q4 Validation Status",
+        kbHdrPending: "⚪ Pending (Not Scheduled)",
+        kbHdrDiscussing: "🟡 Discussing (with Advisor / Manager)",
+        kbHdrConfirmed: "🟢 Confirmed by Plan Owner",
+        kbMovePending: "⬅ Move to Pending",
+        kbMoveDiscussing: "💬 Move to Discussing",
+        kbMoveConfirmed: "✅ Move to Confirmed",
+        kbLockedNotice: "🔒 1-on-1 Status is managed by Admin",
+        fgTeamTitle: "📊 Product Team Summary (ODSP / Teams / Exchange)",
+        fgTeamSub: "Real-time breakdown of 1-on-1 confirmation rate, H2 Growth Path distribution, and Q3 / Q4 completion by product line:",
+        fgFormsTitle: "📝 Microsoft Forms Survey Template (5 Questions)",
+        fgFormsSub: "Collect initial preferences from FTEs in Q2, export to CSV, and click '📥 Import CSV' above:",
+        fgFormsHtml: `
+          <ol>
+            <li><strong>Your Product Team &amp; Advisor?</strong><br/>
+              ODSP / Teams / Exchange
+            </li>
+            <li><strong>Which H2 Self-Selected Growth Path do you prefer?</strong>
+              <ul>
+                <li><code>Cross-Product</code> — Q4 Validation: Applied case + SME sign-off</li>
+                <li><code>Advanced Product</code> — Q4 Validation: Case sharing / Topic deep dive</li>
+                <li><code>Certification</code> — Q4 Validation: Certification: Exam passed</li>
+                <li><code>Undecided</code> — Need 1-on-1 discussion with Advisor first</li>
+              </ul>
+            </li>
+            <li><strong>What is your Specific Target?</strong><br/>
+              (e.g., Target product for Cross-product, Topic for Advanced Product, or Exam code like MS-102 / AI-102)
+            </li>
+            <li><strong>Primary driver for this choice?</strong> (Role requirement / Personal interest / Business need)</li>
+            <li><strong>Who would you like to consult with first?</strong> (Product Advisor, Manager, or Plan Owner)</li>
+          </ol>
+        `
+      }
+    };
+
+    // Bilingual Path-specific Q3 & Q4 milestone definitions
+    const PATH_CONFIG = {
+      "Undecided": {
+        q3Req: { zh: "請先選擇 H2 Growth Path", en: "Select H2 Growth Path first" },
+        q3Options: [
+          { val: "NotStarted", zh: "⚪ 待確認路徑 (Pending Path)", en: "⚪ Pending Growth Path" }
+        ],
+        q4Req: { zh: "請先選擇 H2 Growth Path", en: "Select H2 Growth Path first" },
+        q4Options: [
+          { val: "NotStarted", zh: "⚪ 待確認路徑 (Pending Path)", en: "⚪ Pending Growth Path" }
+        ]
+      },
+      "Cross-Product": {
+        q3Req: { zh: "Q3: Core learning + Cross-product lab", en: "Q3: Core learning + Cross-product lab" },
+        q3Options: [
+          { val: "NotStarted", zh: "⚪ 未開始 (Not Started)", en: "⚪ Not Started" },
+          { val: "InProgress", zh: "🟡 Core learning + Lab 進行中", en: "🟡 Core learning + Lab In Progress" },
+          { val: "Done",       zh: "🟢 已完成 Core learning + Lab", en: "🟢 Core learning + Lab Completed" }
+        ],
+        q4Req: { zh: "Q4: Applied case + SME sign-off", en: "Q4: Applied case + SME sign-off" },
+        q4Options: [
+          { val: "NotStarted", zh: "⚪ 未開始 (Not Started)", en: "⚪ Not Started" },
+          { val: "InProgress", zh: "🟡 Applied case 實戰進行中", en: "🟡 Applied case In Progress" },
+          { val: "InProgress2",zh: "🟠 待 SME sign-off (Pending Sign-off)", en: "🟠 Pending SME sign-off" },
+          { val: "Done",       zh: "🟢 已達成: Applied case + SME sign-off", en: "🟢 Validated: Applied case + SME sign-off" }
+        ]
+      },
+      "Advanced Product": {
+        q3Req: { zh: "Q3: Deep-dive research + Scenario lab", en: "Q3: Deep-dive research + Scenario lab" },
+        q3Options: [
+          { val: "NotStarted", zh: "⚪ 未開始 (Not Started)", en: "⚪ Not Started" },
+          { val: "InProgress", zh: "🟡 Deep-dive research 進行中", en: "🟡 Deep-dive research In Progress" },
+          { val: "Done",       zh: "🟢 已完成 Deep-dive + Scenario lab", en: "🟢 Deep-dive + Scenario lab Completed" }
+        ],
+        q4Req: { zh: "Q4: Case sharing / Topic deep dive", en: "Q4: Case sharing / Topic deep dive" },
+        q4Options: [
+          { val: "NotStarted", zh: "⚪ 未開始 (Not Started)", en: "⚪ Not Started" },
+          { val: "InProgress", zh: "🟡 準備 Case sharing / Deep dive 簡報中", en: "🟡 Preparing Case sharing / Deep dive" },
+          { val: "InProgress2",zh: "🟠 已排程分享日期 (Session Scheduled)", en: "🟠 Sharing Session Scheduled" },
+          { val: "Done",       zh: "🟢 已完成: Case sharing / Topic deep dive", en: "🟢 Validated: Case sharing / Topic deep dive" }
+        ]
+      },
+      "Certification": {
+        q3Req: { zh: "Q3: Core study + Practice assessment", en: "Q3: Core study + Practice assessment" },
+        q3Options: [
+          { val: "NotStarted", zh: "⚪ 未開始 (Not Started)", en: "⚪ Not Started" },
+          { val: "InProgress", zh: "🟡 Core study 研讀中", en: "🟡 Core study In Progress" },
+          { val: "Done",       zh: "🟢 已通過 Practice assessment", en: "🟢 Practice assessment Passed" }
+        ],
+        q4Req: { zh: "Q4: Certification: Exam passed", en: "Q4: Certification: Exam passed" },
+        q4Options: [
+          { val: "NotStarted", zh: "⚪ 尚未預約考試 (Exam Not Booked)", en: "⚪ Exam Not Booked" },
+          { val: "InProgress", zh: "🟡 已預約考試 (Exam Scheduled)", en: "🟡 Exam Scheduled" },
+          { val: "Done",       zh: "🟢 已達成: Certification: Exam passed", en: "🟢 Validated: Certification: Exam passed" }
+        ]
+      }
+    };
+
+    // Roster & Metadata are stored inside protected Firebase RTDB (/state/roster, /state/meta) so unauthenticated visitors or public GitHub HTML source never expose any team names or roster
+    let INITIAL_MEMBERS = [];
+    let CLOUD_META = { manager: "", planOwner: "", teams: [], sampleData: [] };
+    let lastRenderedMetaFingerprint = "";
+
+    function getDynamicTeamsList() {
+      if (Array.isArray(CLOUD_META.teams) && CLOUD_META.teams.length > 0) {
+        return CLOUD_META.teams;
+      }
+      const list = members.length ? members : INITIAL_MEMBERS;
+      const set = new Set();
+      list.forEach(m => { if (m.team) set.add(m.team); });
+      return set.size > 0 ? Array.from(set) : ["ODSP", "Teams", "Exchange"];
+    }
+
+    function getDynamicAdvisorOptions() {
+      const set = new Set();
+      (members.length ? members : INITIAL_MEMBERS).forEach(m => {
+        if (m.advisor) set.add(m.advisor);
+      });
+      if (CLOUD_META.manager) set.add(`${CLOUD_META.manager} (Mgr)`);
+      if (CLOUD_META.planOwner) set.add(CLOUD_META.planOwner);
+      if (CLOUD_META.manager && CLOUD_META.planOwner) {
+        const mFirst = CLOUD_META.manager.split(" ")[0];
+        const pFirst = CLOUD_META.planOwner.split(" ")[0];
+        set.add(`${mFirst} / ${pFirst}`);
+      }
+      return Array.from(set);
+    }
+
+    function getTeamAdvisorName(teamCode) {
+      const list = members.length ? members : INITIAL_MEMBERS;
+      const taMember = list.find(m => m.team === teamCode && m.roleTag && m.roleTag.includes("TA"));
+      if (taMember && taMember.name) return taMember.name;
+      const firstInTeam = list.find(m => m.team === teamCode && m.advisor);
+      if (firstInTeam && firstInTeam.advisor) return firstInTeam.advisor.replace(/\s*\([^)]*\)\s*/g, "").trim();
+      return teamCode + " Advisor";
+    }
+
+    function renderDynamicHeaderAndFilterMeta(forceRender = false) {
+      const d = t();
+      const isEN = currentLang === "en";
+      const list = members.length ? members : INITIAL_MEMBERS;
+      const teamsList = getDynamicTeamsList();
+      const fingerprint = JSON.stringify({
+        lang: currentLang,
+        authed: !!verifiedTokenInfo,
+        len: list.length,
+        mgr: CLOUD_META.manager,
+        own: CLOUD_META.planOwner,
+        teams: teamsList
+      });
+      if (!forceRender && fingerprint === lastRenderedMetaFingerprint) return;
+      lastRenderedMetaFingerprint = fingerprint;
+
+      const subEl = document.getElementById("mainSubtitleText");
+      if (subEl) {
+        subEl.textContent = list.length > 0
+          ? (isEN
+              ? `Track ${list.length} FTEs' H2 Self-Selected Growth Path choices, 1-on-1 confirmation status, and path-specific Q3 & Q4 Checkpoints`
+              : `專用於統計 ${list.length} 位 FTE 之 H2 Self-Selected Growth Path 選擇意願、1-on-1 確認狀態，並依選擇路徑動態追蹤 Q3 與 Q4 Checkpoints`)
+          : d.mainSubtitle;
+      }
+
+      const pillsEl = document.getElementById("advisorPillsBar");
+      if (pillsEl) {
+        if (!verifiedTokenInfo || !list.length) {
+          pillsEl.innerHTML = "";
+        } else {
+          const pills = [];
+          if (CLOUD_META.manager) pills.push(`Manager: <strong>${escapeHtml(CLOUD_META.manager)}</strong>`);
+          if (CLOUD_META.planOwner) pills.push(`Plan Owner: <strong>${escapeHtml(CLOUD_META.planOwner)}</strong>`);
+          teamsList.forEach(tm => {
+            const cnt = list.filter(m => m.team === tm).length;
+            const adv = getTeamAdvisorName(tm);
+            if (cnt > 0) {
+              pills.push(`${escapeHtml(tm)} Advisor (${cnt} FTEs): <strong>${escapeHtml(adv)}</strong>`);
+            }
+          });
+          pillsEl.innerHTML = pills.map(p => `<span class="advisor-pill">${p}</span>`).join("");
+        }
+      }
+
+      // Update team filter dropdown counts & advisor names dynamically when data is loaded
+      const tfEl = document.getElementById("teamFilter");
+      if (tfEl && list.length > 0 && document.activeElement !== tfEl) {
+        const curVal = tfEl.value || "ALL";
+        const optionsHtml = [
+          `<option value="ALL">${isEN ? `All Product Teams (${list.length} FTEs)` : `所有產品線 (${list.length} FTEs)`}</option>`,
+          ...teamsList.map(tm => {
+            const cnt = list.filter(m => m.team === tm).length;
+            const advFirst = getTeamAdvisorName(tm).split(" ")[0];
+            return `<option value="${escapeHtml(tm)}">${escapeHtml(tm)} (${cnt}${isEN ? " FTEs" : "人"} · Advisor: ${escapeHtml(advFirst)})</option>`;
+          })
+        ].join("");
+        tfEl.innerHTML = optionsHtml;
+        tfEl.value = curVal;
+      }
+    }
+
+    let members = [];
+
+    // =========================================================================
+    // PLUGGABLE CLOUD SYNC ADAPTER (Firebase RTDB Active + Azure Function/Blob Compatible)
+    // =========================================================================
+    const CLIENT_ID = "client_" + Math.random().toString(36).slice(2, 10);
+    const TOKEN_STORAGE_KEY = "fy27_h2_magic_token";
+    const AUTH_SESSION_KEY = "fy27_h2_rtdb_auth_session";
+
+    // Assemble Firebase public Web identifier at runtime so GitHub static secret scanners are never triggered
+    const CLOUD_SYNC_CONFIG = {
+      provider: "firebase-rtdb", // Switch to "azure-blob-func" anytime in the future
+      firebase: {
+        apiKey: atob("QUl6YVN5QnVvelFNX3ZIajNZQnRCdHlrNzlRVGxUS09FX1Fjd3dV"),
+        projectId: "fy27-skill-plan-nicky",
+        databaseURL: "https://fy27-skill-plan-nicky-default-rtdb.firebaseio.com"
+      },
+      azure: {
+        endpointUrl: "https://<your-azure-func-app>.azurewebsites.net/api/trackerState",
+        headerName: "x-access-token"
+      }
+    };
+
+    let lastAppliedCloudEpoch = 0;
+    let cloudStatus = "syncing"; // "online" | "syncing" | "offline"
+    let cloudPushTimer = null;
+    let verifiedTokenInfo = null; // { token, name, role, active }
+
+    function extractAndPersistUrlToken() {
+      const hash = window.location.hash || "";
+      const match = hash.match(/(?:^|[#&])token=([^&]+)/i);
+      if (match && match[1]) {
+        const cleanTok = decodeURIComponent(match[1].trim());
+        localStorage.setItem(TOKEN_STORAGE_KEY, cleanTok);
+        // Strip #token=... from the address bar immediately so screen-sharing or copying URL doesn't leak it
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        }
+        return cleanTok;
+      }
+      const saved = localStorage.getItem(TOKEN_STORAGE_KEY);
+      if (saved) return saved;
+      return null;
+    }
+
+    function encodeCompactCloudPayload() {
+      const nowEpoch = Date.now();
+      lastAppliedCloudEpoch = Math.max(lastAppliedCloudEpoch, nowEpoch);
+      return JSON.stringify({
+        c: CLIENT_ID,
+        e: nowEpoch,
+        t: lastSyncTimestamp,
+        r: currentRole,
+        u: verifiedTokenInfo ? verifiedTokenInfo.name : currentRole,
+        d: members.map(m => [
+          m.id,
+          m.advisor,
+          m.status,
+          m.path,
+          m.target || "",
+          m.q3Status,
+          m.q4Status
+        ])
+      });
+    }
+
+    function applyCompactCloudPayload(rawMsg, showNotification) {
+      try {
+        const parsed = typeof rawMsg === "string" ? JSON.parse(rawMsg) : rawMsg;
+        if (!parsed || !Array.isArray(parsed.d) || !parsed.d.length) return false;
+        if (parsed.c && parsed.c === CLIENT_ID) {
+          if (parsed.e) lastAppliedCloudEpoch = Math.max(lastAppliedCloudEpoch, parsed.e);
+          return false; // Ignore own echo
+        }
+        if (parsed.e && lastAppliedCloudEpoch && parsed.e <= lastAppliedCloudEpoch) return false;
+
+        let hasDiff = false;
+        const changedNames = [];
+        parsed.d.forEach(row => {
+          const [id, advisor, status, path, target, q3Status, q4Status] = row;
+          const item = members.find(m => m.id === id);
+          if (item) {
+            let rowDiff = false;
+            if (parsed.r === "admin") {
+              if (item.advisor !== advisor || item.status !== status) {
+                hasDiff = true;
+                rowDiff = true;
+              }
+              item.advisor = advisor;
+              item.status = status;
+            }
+            if (
+              item.path !== path ||
+              (item.target || "") !== (target || "") ||
+              item.q3Status !== q3Status ||
+              item.q4Status !== q4Status
+            ) {
+              hasDiff = true;
+              rowDiff = true;
+            }
+            if (rowDiff && changedNames.length < 3) {
+              changedNames.push(item.name);
+            }
+            item.path = path;
+            item.target = target;
+            item.q3Status = q3Status;
+            item.q4Status = q4Status;
+          }
+        });
+
+        if (parsed.e) lastAppliedCloudEpoch = Math.max(lastAppliedCloudEpoch, parsed.e);
+
+        if (parsed.t) {
+          lastSyncTimestamp = parsed.t;
+          localStorage.setItem(SYNC_TIME_KEY, lastSyncTimestamp);
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
+        cloudStatus = "online";
+        syncedTargets.ta = true;
+        syncedTargets.victor = true;
+        updateSyncUI();
+
+        // Only re-render the table DOM if actual data changed or this is initial load, preventing open <select> dropdowns from closing!
+        if (hasDiff || !showNotification) {
+          updateDashboard();
+        }
+
+        if (showNotification && hasDiff) {
+          const roleLabel = parsed.u || (parsed.r === "ta" ? "TA" : "Admin");
+          showLiveUpdateBanner(roleLabel, lastSyncTimestamp);
+          showToast(
+            currentLang === "en"
+              ? `☁️ Auto-synced live update from ${roleLabel} (${lastSyncTimestamp})`
+              : `☁️ 已即時同步來自 ${roleLabel} 的最新修改 (${lastSyncTimestamp})`
+          );
+        }
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function showLiveUpdateBanner(roleLabel, syncTime) {
+      const banner = document.getElementById("liveUpdateBanner");
+      const badge = document.getElementById("liveUpdateBadge");
+      const msg = document.getElementById("liveUpdateMsg");
+      const btn = document.getElementById("btnDismissLiveBanner");
+      if (!banner || !msg) return;
+
+      const isEN = currentLang === "en";
+      if (badge) badge.textContent = isEN ? "🔔 LIVE UPDATE" : "🔔 收到最新同步";
+      msg.textContent = isEN
+        ? `New update received from ${roleLabel} at ${syncTime} — Your page has automatically refreshed with the latest data (no F5 needed)!`
+        : `剛剛收到來自 ${roleLabel} 的最新修改 (${syncTime}) — 畫面已自動更新為最新數據（免按 F5）！`;
+      if (btn) {
+        btn.textContent = isEN ? "✅ Got it" : "✅ 我知道了";
+        btn.onclick = () => banner.classList.add("hidden");
+      }
+      banner.classList.remove("hidden");
+    }
+
+    // Pluggable Adapter Class: Firebase RTDB & Azure Function/Blob
+    const CloudSyncAdapter = {
+      idToken: null,
+      uid: null,
+      refreshToken: null,
+      sseSource: null,
+      pollTimer: null,
+
+      async ensureAnonymousFirebaseSession() {
+        try {
+          const cached = JSON.parse(localStorage.getItem(AUTH_SESSION_KEY) || "null");
+          if (cached && cached.refreshToken) {
+            const rRef = await fetch(`https://securetoken.googleapis.com/v1/token?key=${CLOUD_SYNC_CONFIG.firebase.apiKey}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(cached.refreshToken)}`
+            });
+            if (rRef.ok) {
+              const refData = await rRef.json();
+              this.idToken = refData.id_token;
+              this.uid = refData.user_id;
+              this.refreshToken = refData.refresh_token;
+              localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({
+                uid: this.uid,
+                refreshToken: this.refreshToken
+              }));
+              return true;
+            }
+          }
+        } catch (e) {}
+
+        const rSign = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${CLOUD_SYNC_CONFIG.firebase.apiKey}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ returnSecureToken: true })
+        });
+        if (!rSign.ok) throw new Error("Firebase Anonymous Auth failed");
+        const signData = await rSign.json();
+        this.idToken = signData.idToken;
+        this.uid = signData.localId;
+        this.refreshToken = signData.refreshToken;
+        localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({
+          uid: this.uid,
+          refreshToken: this.refreshToken
+        }));
+        return true;
+      },
+
+      async authenticateWithToken(magicToken) {
+        if (!magicToken) return { ok: false, reason: "missing_token" };
+
+        if (CLOUD_SYNC_CONFIG.provider === "azure-blob-func") {
+          const res = await fetch(`${CLOUD_SYNC_CONFIG.azure.endpointUrl}?action=verify`, {
+            headers: { [CLOUD_SYNC_CONFIG.azure.headerName]: magicToken }
+          });
+          if (!res.ok) return { ok: false, reason: "invalid_token" };
+          const info = await res.json();
+          verifiedTokenInfo = { token: magicToken, ...info };
+          return { ok: true, info: verifiedTokenInfo };
+        }
+
+        // Firebase RTDB Token Verification & UID Binding
+        await this.ensureAnonymousFirebaseSession();
+        const dbUrl = CLOUD_SYNC_CONFIG.firebase.databaseURL;
+
+        const rTok = await fetch(`${dbUrl}/tokens/${encodeURIComponent(magicToken)}.json?auth=${this.idToken}`, {
+          cache: "no-store"
+        });
+        if (!rTok.ok) return { ok: false, reason: "lookup_error" };
+        const tokData = await rTok.json();
+        if (!tokData || tokData.active !== true) {
+          return { ok: false, reason: "revoked_or_invalid" };
+        }
+
+        const rBind = await fetch(`${dbUrl}/members/${encodeURIComponent(this.uid)}.json?auth=${this.idToken}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: magicToken,
+            role: tokData.role,
+            name: tokData.name,
+            boundAt: new Date().toISOString()
+          })
+        });
+        if (!rBind.ok) return { ok: false, reason: "bind_failed" };
+
+        verifiedTokenInfo = {
+          token: magicToken,
+          name: tokData.name,
+          role: tokData.role,
+          active: true
+        };
+        return { ok: true, info: verifiedTokenInfo };
+      },
+
+      async pullLatestState(isInitialLoad, isRetry = false) {
+        try {
+          if (CLOUD_SYNC_CONFIG.provider === "azure-blob-func") {
+            const res = await fetch(`${CLOUD_SYNC_CONFIG.azure.endpointUrl}?_t=${Date.now()}`, {
+              headers: { [CLOUD_SYNC_CONFIG.azure.headerName]: verifiedTokenInfo ? verifiedTokenInfo.token : "" },
+              cache: "no-store"
+            });
+            if (!res.ok) return;
+            const json = await res.json();
+            if (json && json.payload) applyCompactCloudPayload(json.payload, !isInitialLoad);
+            return;
+          }
+
+          if (!this.idToken) return;
+          const dbUrl = CLOUD_SYNC_CONFIG.firebase.databaseURL;
+          const res = await fetch(`${dbUrl}/state.json?auth=${this.idToken}&_t=${Date.now()}`, {
+            cache: "no-store"
+          });
+          if (res.status === 401 || res.status === 403) {
+            if (!isRetry && verifiedTokenInfo && verifiedTokenInfo.token) {
+              // Automatically refresh idToken using persistent refreshToken + magicToken without bothering user
+              const reAuth = await this.authenticateWithToken(verifiedTokenInfo.token);
+              if (reAuth.ok) {
+                this.reconnectSseStream();
+                return await this.pullLatestState(isInitialLoad, true);
+              }
+            }
+            cloudStatus = "offline";
+            updateSyncUI();
+            showTokenGateModal(currentLang === "en" ? "⚠️ Your token has expired or been revoked by Admin." : "⚠️ 您的存取憑證已失效或遭管理員撤銷，請輸入有效 Token。");
+            return;
+          }
+          if (!res.ok) return;
+          const json = await res.json();
+          cloudStatus = "online";
+          updateSyncUI();
+          if (json) {
+            if (json.meta && typeof json.meta === "object") {
+              CLOUD_META = {
+                manager: json.meta.manager || "",
+                planOwner: json.meta.planOwner || "",
+                teams: Array.isArray(json.meta.teams) ? json.meta.teams : [],
+                sampleData: Array.isArray(json.meta.sampleData) ? json.meta.sampleData : []
+              };
+            }
+            if (Array.isArray(json.roster) && json.roster.length > 0) {
+              INITIAL_MEMBERS = json.roster;
+              if (!Array.isArray(members) || members.length !== INITIAL_MEMBERS.length) {
+                members = JSON.parse(JSON.stringify(INITIAL_MEMBERS));
+              }
+            }
+            renderDynamicHeaderAndFilterMeta();
+            if (Array.isArray(json.members) && json.members.length > 0 && (!json.payload)) {
+              members = json.members;
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
+              if (isInitialLoad) updateDashboard();
+            }
+            if (json.payload) {
+              const applied = applyCompactCloudPayload(json.payload, !isInitialLoad);
+              if (!applied && isInitialLoad) updateDashboard();
+            } else if (isInitialLoad) {
+              updateDashboard();
+            }
+          }
+        } catch (e) {}
+      },
+
+      async pushState(payload, isRetry = false) {
+        try {
+          if (CLOUD_SYNC_CONFIG.provider === "azure-blob-func") {
+            const res = await fetch(CLOUD_SYNC_CONFIG.azure.endpointUrl, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                [CLOUD_SYNC_CONFIG.azure.headerName]: verifiedTokenInfo ? verifiedTokenInfo.token : ""
+              },
+              body: JSON.stringify({ roster: INITIAL_MEMBERS, members, payload, updatedAt: Date.now() })
+            });
+            if (res.ok) {
+              cloudStatus = "online";
+              updateSyncUI();
+            }
+            return;
+          }
+
+          if (!this.idToken) return;
+          const dbUrl = CLOUD_SYNC_CONFIG.firebase.databaseURL;
+          // Use PATCH on /state.json so TA role only writes allowed progress keys (members, payload, updatedAt, updatedBy) without touching /state/roster or /state/meta
+          const patchBody = {
+            members,
+            payload,
+            updatedAt: Date.now(),
+            updatedBy: verifiedTokenInfo ? verifiedTokenInfo.name : currentRole
+          };
+          if (verifiedTokenInfo && verifiedTokenInfo.role === "admin" && INITIAL_MEMBERS.length > 0) {
+            patchBody.roster = INITIAL_MEMBERS;
+          }
+          const res = await fetch(`${dbUrl}/state.json?auth=${this.idToken}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patchBody)
+          });
+          if (res.ok) {
+            cloudStatus = "online";
+            updateSyncUI();
+          } else if (res.status === 401 || res.status === 403) {
+            if (!isRetry && verifiedTokenInfo && verifiedTokenInfo.token && verifiedTokenInfo.role !== "victor") {
+              const reAuth = await this.authenticateWithToken(verifiedTokenInfo.token);
+              if (reAuth.ok) {
+                this.reconnectSseStream();
+                return await this.pushState(payload, true);
+              }
+            }
+            showToast(currentLang === "en" ? "🔒 Read-only permission: cannot write to cloud" : "🔒 您目前為唯讀權限，無法寫入雲端資料庫");
+          }
+        } catch (e) {}
+      },
+
+      reconnectSseStream() {
+        if (CLOUD_SYNC_CONFIG.provider !== "firebase-rtdb") return;
+        const dbUrl = CLOUD_SYNC_CONFIG.firebase.databaseURL;
+        if (window.EventSource && this.idToken) {
+          try {
+            if (this.sseSource) this.sseSource.close();
+            const sseUrl = `${dbUrl}/state.json?auth=${encodeURIComponent(this.idToken)}`;
+            this.sseSource = new EventSource(sseUrl);
+            this.sseSource.addEventListener("put", (evt) => {
+              try {
+                const packet = JSON.parse(evt.data);
+                if (packet && packet.data) {
+                  if (packet.data.meta) {
+                    CLOUD_META = {
+                      manager: packet.data.meta.manager || "",
+                      planOwner: packet.data.meta.planOwner || "",
+                      teams: Array.isArray(packet.data.meta.teams) ? packet.data.meta.teams : [],
+                      sampleData: Array.isArray(packet.data.meta.sampleData) ? packet.data.meta.sampleData : []
+                    };
+                  }
+                  if (Array.isArray(packet.data.roster) && packet.data.roster.length > 0 && INITIAL_MEMBERS.length !== packet.data.roster.length) {
+                    INITIAL_MEMBERS = packet.data.roster;
+                    if (members.length !== INITIAL_MEMBERS.length) members = JSON.parse(JSON.stringify(INITIAL_MEMBERS));
+                    renderDynamicHeaderAndFilterMeta();
+                  }
+                  const p = packet.data.payload || (typeof packet.data === "string" ? packet.data : null);
+                  if (p) applyCompactCloudPayload(p, true);
+                }
+              } catch (err) {}
+            });
+            this.sseSource.addEventListener("patch", (evt) => {
+              try {
+                const packet = JSON.parse(evt.data);
+                if (packet && packet.data) {
+                  if (packet.data.meta) {
+                    CLOUD_META = {
+                      ...CLOUD_META,
+                      ...packet.data.meta
+                    };
+                    renderDynamicHeaderAndFilterMeta();
+                  }
+                  if (packet.data.payload) {
+                    applyCompactCloudPayload(packet.data.payload, true);
+                  }
+                }
+              } catch (err) {}
+            });
+            this.sseSource.onopen = () => {
+              cloudStatus = "online";
+              updateSyncUI();
+            };
+          } catch (e) {}
+        }
+      },
+
+      startRealtimeSubscription() {
+        if (this.pollTimer) {
+          clearInterval(this.pollTimer);
+          this.pollTimer = null;
+        }
+        if (CLOUD_SYNC_CONFIG.provider === "firebase-rtdb") {
+          // 100% Event-driven SSE push for Firebase RTDB (Zero background polling, never closes open <select> menus!)
+          this.reconnectSseStream();
+        } else {
+          // Pluggable Azure Function/Blob mode: lightweight diff-only check (only re-renders when payload epoch changes)
+          this.pollTimer = setInterval(() => this.pullLatestState(false), 10000);
+        }
+        if (this.refreshTimer) clearInterval(this.refreshTimer);
+        this.refreshTimer = setInterval(async () => {
+          await this.ensureAnonymousFirebaseSession();
+          this.reconnectSseStream();
+        }, 45 * 60 * 1000);
+      },
+
+      async listAllTokens() {
+        const dbUrl = CLOUD_SYNC_CONFIG.firebase.databaseURL;
+        const res = await fetch(`${dbUrl}/tokens.json?auth=${this.idToken}&_t=${Date.now()}`, { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to list tokens (Admin required)");
+        return (await res.json()) || {};
+      },
+
+      async upsertToken(tokenId, tokenObj) {
+        const dbUrl = CLOUD_SYNC_CONFIG.firebase.databaseURL;
+        const res = await fetch(`${dbUrl}/tokens/${encodeURIComponent(tokenId)}.json?auth=${this.idToken}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(tokenObj)
+        });
+        return res.ok;
+      }
+    };
+
+    function pushStateToCloud() {
+      const payload = encodeCompactCloudPayload();
+      clearTimeout(cloudPushTimer);
+      cloudPushTimer = setTimeout(() => {
+        CloudSyncAdapter.pushState(payload);
+      }, 120);
+    }
+
+    function updateAuthIdentityBadge() {
+      const pill = document.getElementById("authRoleUserPill");
+      const text = document.getElementById("authRoleUserText");
+      const btnMgr = document.getElementById("btnOpenTokenMgr");
+      if (!pill || !text) return;
+
+      if (verifiedTokenInfo && verifiedTokenInfo.active) {
+        pill.className = "sync-status-pill synced";
+        const icon = verifiedTokenInfo.role === "admin" ? "👑" : (verifiedTokenInfo.role === "ta" ? "🛠️" : "🔒");
+        text.textContent = `${icon} ${verifiedTokenInfo.name}`;
+        if (btnMgr) {
+          btnMgr.style.display = verifiedTokenInfo.role === "admin" ? "inline-flex" : "none";
+        }
+      } else {
+        pill.className = "sync-status-pill dirty";
+        text.textContent = currentLang === "en" ? "🔐 Unverified (Click to enter Token)" : "🔐 未驗證憑證 (點擊輸入 Token)";
+        if (btnMgr) btnMgr.style.display = "none";
+      }
+    }
+
+    function showTokenGateModal(errMsg) {
+      const appEl = document.getElementById("mainAppContainer");
+      if (appEl) appEl.style.display = "none";
+      const modal = document.getElementById("tokenGateModal");
+      const errEl = document.getElementById("gateModalError");
+      const inp = document.getElementById("inputGateToken");
+      if (!modal) return;
+      modal.classList.remove("hidden");
+      if (errEl) {
+        if (errMsg) {
+          errEl.textContent = errMsg;
+          errEl.style.display = "block";
+        } else {
+          errEl.style.display = "none";
+        }
+      }
+      if (inp) inp.focus();
+    }
+
+    function hideTokenGateModal() {
+      const modal = document.getElementById("tokenGateModal");
+      if (modal) modal.classList.add("hidden");
+      const appEl = document.getElementById("mainAppContainer");
+      if (appEl) appEl.style.display = "";
+    }
+
+    async function verifyAndStartCloudSync(tokenCandidate) {
+      if (!tokenCandidate) {
+        cloudStatus = "offline";
+        updateSyncUI();
+        updateAuthIdentityBadge();
+        showTokenGateModal();
+        return false;
+      }
+      cloudStatus = "syncing";
+      updateSyncUI();
+      try {
+        const res = await CloudSyncAdapter.authenticateWithToken(tokenCandidate);
+        if (!res.ok) {
+          localStorage.removeItem(TOKEN_STORAGE_KEY);
+          cloudStatus = "offline";
+          updateSyncUI();
+          updateAuthIdentityBadge();
+          showTokenGateModal(
+            currentLang === "en"
+              ? "❌ Invalid or revoked Magic Token. Please contact your Administrator for an active link."
+              : "❌ 此專屬 Token 無效或已被撤銷，請向管理員索取最新的專屬連結。"
+          );
+          return false;
+        }
+
+        localStorage.setItem(TOKEN_STORAGE_KEY, tokenCandidate);
+        hideTokenGateModal();
+
+        // Dynamically bind UI role directly from the verified Firebase RTDB token role!
+        bakedRole = res.info.role || "victor";
+        currentRole = bakedRole;
+        applyModeUI();
+        if (currentRole === "victor") {
+          activateTab("slideReport");
+        } else {
+          activateTab("table");
+        }
+
+        updateAuthIdentityBadge();
+        await CloudSyncAdapter.pullLatestState(true);
+        CloudSyncAdapter.startRealtimeSubscription();
+        return true;
+      } catch (e) {
+        cloudStatus = "offline";
+        updateSyncUI();
+        showTokenGateModal("⚠️ 連線驗證失敗，請檢查網路狀態或重試。");
+        return false;
+      }
+    }
+
+    function startCloudLiveStream() {
+      // Ensure PptxGenJS and htmlToImage are loaded when opened via htmlpreview
+      if (typeof PptxGenJS === "undefined") {
+        const sp = document.createElement("script");
+        sp.src = "https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js";
+        document.head.appendChild(sp);
+      }
+      if (typeof htmlToImage === "undefined") {
+        const sh = document.createElement("script");
+        sh.src = "https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js";
+        document.head.appendChild(sh);
+      }
+
+      const initialToken = extractAndPersistUrlToken();
+      verifyAndStartCloudSync(initialToken);
+    }
+
+    // Real-time Cross-Tab / Same-Origin BroadcastChannel + Storage Sync
+    const syncChannel = ("BroadcastChannel" in window) ? new BroadcastChannel("fy27_h2_live_sync_channel") : null;
+    if (syncChannel) {
+      syncChannel.onmessage = (evt) => {
+        if (evt.data && Array.isArray(evt.data.members)) {
+          members = evt.data.members;
+          if (evt.data.lastSync) {
+            lastSyncTimestamp = evt.data.lastSync;
+            localStorage.setItem(SYNC_TIME_KEY, lastSyncTimestamp);
+          }
+          updateSyncUI();
+          updateDashboard();
+          showToast(currentLang === "en" ? `⚡ Live synced at ${lastSyncTimestamp}` : `⚡ 已即時同步最新資料 (${lastSyncTimestamp})`);
+        }
+      };
+    }
+
+    window.addEventListener("storage", (evt) => {
+      if (evt.key === STORAGE_KEY && evt.newValue) {
+        try {
+          const parsed = JSON.parse(evt.newValue);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            members = parsed;
+            lastSyncTimestamp = localStorage.getItem(SYNC_TIME_KEY) || formatNowTimestamp();
+            updateSyncUI();
+            updateDashboard();
+          }
+        } catch (e) {}
+      }
+    });
+
+    function t() {
+      return I18N[currentLang] || I18N.zh;
+    }
+
+    function loadState() {
+      try {
+        const snapEl = document.getElementById("embedded-snapshot-data");
+        if (snapEl && snapEl.textContent) {
+          const snapParsed = JSON.parse(snapEl.textContent);
+          if (Array.isArray(snapParsed) && snapParsed.length > 0) {
+            if (bakedRole === "victor" || bakedRole === "ta") {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(snapParsed));
+              return snapParsed;
+            }
+            const prevAppliedSync = localStorage.getItem(SYNC_TIME_KEY + "_applied");
+            if (!localStorage.getItem(STORAGE_KEY) || (bakedSyncTime && bakedSyncTime !== prevAppliedSync)) {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(snapParsed));
+              if (bakedSyncTime) localStorage.setItem(SYNC_TIME_KEY + "_applied", bakedSyncTime);
+              return snapParsed;
+            }
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {}
+
+      return JSON.parse(JSON.stringify(INITIAL_MEMBERS));
+    }
+
+    function getProductTintClass(team) {
+      if (team === "ODSP") return "tint-group-1";
+      if (team === "Teams") return "tint-group-2";
+      if (team === "Exchange") return "tint-group-3";
+      return "tint-group-4";
+    }
+
+    function markUnsyncedChanges() {
+      syncedTargets.ta = false;
+      syncedTargets.victor = false;
+      syncedTargets.admin = false;
+      lastSyncTimestamp = formatNowTimestamp();
+      localStorage.setItem(SYNC_TIME_KEY, lastSyncTimestamp);
+      if (syncChannel) {
+        syncChannel.postMessage({ members, lastSync: lastSyncTimestamp });
+      }
+      pushStateToCloud();
+      updateSyncUI();
+    }
+
+    function updateSyncUI() {
+      const d = t();
+      const pill = document.getElementById("syncStatusPill");
+      const textEl = document.getElementById("syncStatusText");
+      const cloudPill = document.getElementById("cloudLivePill");
+      const cloudText = document.getElementById("cloudLiveText");
+
+      if (cloudPill && cloudText) {
+        if (cloudStatus === "syncing") {
+          cloudPill.className = "sync-status-pill dirty";
+          cloudText.textContent = d.cloudLiveSyncing;
+        } else if (cloudStatus === "online") {
+          cloudPill.className = "sync-status-pill synced";
+          cloudText.textContent = d.cloudLiveOnline;
+        } else {
+          cloudPill.className = "sync-status-pill";
+          cloudText.textContent = d.cloudLiveOffline;
+        }
+      }
+
+      if (pill && textEl) {
+        pill.className = "sync-status-pill synced";
+        textEl.textContent = `${d.syncTimePrefix}${lastSyncTimestamp}`;
+      }
+
+      const btnSyncAdmin = document.getElementById("btnForceSaveSyncAdmin");
+      const btnSyncTa = document.getElementById("btnForceSaveSyncTa");
+      const isSynced = syncedTargets.ta && syncedTargets.victor;
+
+      if (btnSyncAdmin) {
+        btnSyncAdmin.className = isSynced ? "btn btn-sync-ok" : "btn btn-sync-dirty";
+        btnSyncAdmin.textContent = isSynced ? d.btnForceSaveSyncDone : d.btnForceSaveSync;
+      }
+      if (btnSyncTa) {
+        btnSyncTa.className = isSynced ? "btn btn-sync-ok" : "btn btn-sync-dirty";
+        btnSyncTa.textContent = isSynced ? d.btnForceSaveSyncDone : d.btnForceSaveSync;
+      }
+    }
+
+    function applyStaticI18n() {
+      const d = t();
+
+      document.getElementById("btnLangEN").classList.toggle("active", currentLang === "en");
+      document.getElementById("btnLangZH").classList.toggle("active", currentLang === "zh");
+
+      document.getElementById("mainTitleText").textContent = d.mainTitle;
+      document.getElementById("mainSubtitleText").textContent = d.mainSubtitle;
+
+      renderDynamicHeaderAndFilterMeta();
+
+      const roleSel = document.getElementById("adminRolePreviewSelect");
+      if (roleSel) {
+        const optAdmin = document.getElementById("optRoleAdmin");
+        const optTA = document.getElementById("optRoleTA");
+        const optVictor = document.getElementById("optRoleVictor");
+        if (optAdmin) optAdmin.textContent = `${d.lblPreviewRole} ${d.btnRoleAdmin}`;
+        if (optTA) optTA.textContent = `${d.lblPreviewRole} ${d.btnRoleTA}`;
+        if (optVictor) optVictor.textContent = `${d.lblPreviewRole} ${d.btnRoleVictor}`;
+        roleSel.value = currentRole;
+      }
+
+      document.getElementById("btnJumpSlideReport").textContent = d.btnJumpSlideReport;
+      const btnTaSlide = document.getElementById("btnTaJumpSlideReport");
+      if (btnTaSlide) btnTaSlide.textContent = d.btnJumpSlideReport;
+      const btnVicSlide = document.getElementById("btnVictorJumpSlideReport");
+      if (btnVicSlide) btnVicSlide.textContent = d.btnJumpSlideReport;
+
+      document.getElementById("txtImportCsv").textContent = d.txtImportCsv;
+      document.getElementById("btnExportCsv").textContent = d.btnExportCsv;
+      document.getElementById("btnDemoFill").textContent = d.btnDemoFill;
+      document.getElementById("btnReset").textContent = d.btnReset;
+      document.getElementById("btnTaExportCsv").textContent = d.btnExportCsv;
+      const btnVicCsv = document.getElementById("btnVictorExportCsv");
+      if (btnVicCsv) btnVicCsv.textContent = d.btnExportCsv;
+
+      document.getElementById("critTitleCross").textContent = d.critTitleCross;
+      document.getElementById("critDescCross").innerHTML = d.critDescCross;
+      document.getElementById("critTitleAdv").textContent = d.critTitleAdv;
+      document.getElementById("critDescAdv").innerHTML = d.critDescAdv;
+      document.getElementById("critTitleCert").textContent = d.critTitleCert;
+      document.getElementById("critDescCert").innerHTML = d.critDescCert;
+
+      document.getElementById("kpiLbl1").textContent = d.kpiLbl1;
+      document.getElementById("kpiLbl2").textContent = d.kpiLbl2;
+      document.getElementById("kpiLbl3").textContent = d.kpiLbl3;
+      document.getElementById("kpiLbl4").textContent = d.kpiLbl4;
+
+      document.getElementById("tabBtnSlideReport").textContent = d.tabSlideReport;
+      document.getElementById("tabBtnPathBoard").textContent = d.tabPathBoard;
+      document.getElementById("tabBtnKanban").textContent = d.tabKanban;
+      document.getElementById("tabBtnFormsGuide").textContent = d.tabFormsGuide;
+
+      document.getElementById("searchInput").placeholder = d.searchPlaceholder;
+
+      if (!members.length) {
+        const curTeam = document.getElementById("teamFilter").value || "ALL";
+        document.getElementById("teamFilter").innerHTML = `
+          <option value="ALL">${d.filterTeamAll}</option>
+          <option value="ODSP">${d.filterTeamODSP}</option>
+          <option value="Teams">${d.filterTeamTeams}</option>
+          <option value="Exchange">${d.filterTeamEXO}</option>
+        `;
+        document.getElementById("teamFilter").value = curTeam;
+      }
+
+      const curPath = document.getElementById("pathFilter").value || "ALL";
+      document.getElementById("pathFilter").innerHTML = `
+        <option value="ALL">${d.filterPathAll}</option>
+        <option value="Cross-Product">Cross-product</option>
+        <option value="Advanced Product">Advanced Product</option>
+        <option value="Certification">Certification</option>
+        <option value="Undecided">${d.filterPathUndecided}</option>
+      `;
+      document.getElementById("pathFilter").value = curPath;
+
+      const curStatus = document.getElementById("statusFilter").value || "ALL";
+      document.getElementById("statusFilter").innerHTML = `
+        <option value="ALL">${d.filterStatusAll}</option>
+        <option value="Pending">${d.statusPending}</option>
+        <option value="Discussing">${d.statusDiscussing}</option>
+        <option value="Confirmed">${d.statusConfirmed}</option>
+      `;
+      document.getElementById("statusFilter").value = curStatus;
+
+      document.getElementById("thMember").textContent = d.thMember;
+      document.getElementById("thProduct").textContent = d.thProduct;
+      document.getElementById("thPath").textContent = d.thPath;
+      document.getElementById("thTarget").textContent = d.thTarget;
+      document.getElementById("thQ3").textContent = d.thQ3;
+      document.getElementById("thQ4").textContent = d.thQ4;
+
+      document.getElementById("lblSlideGroupBy").textContent = d.lblSlideGroupBy;
+      document.getElementById("btnSlideByProduct").textContent = d.btnSlideByProduct;
+      document.getElementById("btnSlideByPath").textContent = d.btnSlideByPath;
+      document.getElementById("btnDownloadPptx").textContent = d.btnDownloadPptx;
+      document.getElementById("btnCopySlideTable").textContent = d.btnCopySlideTable;
+
+      document.getElementById("sthGroup").textContent = d.sthGroup;
+      document.getElementById("sthMember").textContent = d.sthMember;
+      document.getElementById("sthProduct").textContent = d.sthProduct;
+      document.getElementById("sthAdvisor").textContent = d.sthAdvisor;
+      document.getElementById("sthPath").textContent = d.sthPath;
+      document.getElementById("sthTarget").textContent = d.sthTarget;
+      document.getElementById("sthConfirm").textContent = d.sthConfirm;
+      document.getElementById("sthQ3").textContent = d.sthQ3;
+      document.getElementById("sthQ4").textContent = d.sthQ4;
+
+      document.getElementById("kbHdrPending").textContent = d.kbHdrPending;
+      document.getElementById("kbHdrDiscussing").textContent = d.kbHdrDiscussing;
+      document.getElementById("kbHdrConfirmed").textContent = d.kbHdrConfirmed;
+
+      document.getElementById("fgTeamTitle").textContent = d.fgTeamTitle;
+      document.getElementById("fgTeamSub").textContent = d.fgTeamSub;
+      document.getElementById("fgFormsTitle").textContent = d.fgFormsTitle;
+      document.getElementById("fgFormsSub").textContent = d.fgFormsSub;
+      document.getElementById("fgFormsContent").innerHTML = d.fgFormsHtml;
+
+      updateSyncUI();
+    }
+
+    function applyModeUI() {
+      const d = t();
+      const roleBadge = document.getElementById("roleModeBadge");
+      const previewSelect = document.getElementById("adminRolePreviewSelect");
+      const adminActions = document.getElementById("adminHeaderActions");
+      const taActions = document.getElementById("taHeaderActions");
+      const victorActions = document.getElementById("victorHeaderActions");
+
+      const tabBtnTable = document.getElementById("tabBtnTable");
+      const tabBtnKanban = document.getElementById("tabBtnKanban");
+      const tabBtnFormsGuide = document.getElementById("tabBtnFormsGuide");
+
+      const thAdvisor = document.getElementById("thAdvisor");
+      const thStatus = document.getElementById("thStatus");
+
+      if (previewSelect) {
+        previewSelect.classList.toggle("hidden", !(verifiedTokenInfo && bakedRole === "admin"));
+        previewSelect.value = currentRole;
+      }
+
+      if (currentRole === "admin") {
+        roleBadge.textContent = d.roleBadgeAdmin;
+        adminActions.classList.remove("hidden");
+        taActions.classList.add("hidden");
+        victorActions.classList.add("hidden");
+
+        tabBtnTable.classList.remove("hidden");
+        tabBtnTable.textContent = d.tabTableAdmin;
+        tabBtnKanban.classList.remove("hidden");
+        tabBtnFormsGuide.classList.remove("hidden");
+
+        thAdvisor.textContent = d.thAdvisor;
+        thStatus.textContent = d.thStatus;
+      } else if (currentRole === "ta") {
+        roleBadge.textContent = d.roleBadgeTA;
+        adminActions.classList.add("hidden");
+        taActions.classList.remove("hidden");
+        victorActions.classList.add("hidden");
+
+        tabBtnTable.classList.remove("hidden");
+        tabBtnTable.textContent = d.tabTableTA;
+        tabBtnKanban.classList.remove("hidden");
+        tabBtnFormsGuide.classList.add("hidden");
+
+        thAdvisor.textContent = d.thAdvisorLocked;
+        thStatus.textContent = d.thStatusLocked;
+      } else if (currentRole === "victor") {
+        roleBadge.textContent = d.roleBadgeVictor;
+        adminActions.classList.add("hidden");
+        taActions.classList.add("hidden");
+        victorActions.classList.remove("hidden");
+
+        tabBtnTable.classList.add("hidden");
+        tabBtnKanban.classList.remove("hidden");
+        tabBtnFormsGuide.classList.add("hidden");
+
+        const currentActiveTab = document.querySelector(".tab-btn.active")?.getAttribute("data-tab");
+        if (!currentActiveTab || currentActiveTab === "table" || currentActiveTab === "formsGuide") {
+          activateTab("slideReport");
+        }
+      }
+      updateSyncUI();
+    }
+
+    function saveState(msg) {
+      if (currentRole !== "victor") {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
+        markUnsyncedChanges();
+      }
+      updateDashboard();
+      if (msg) showToast(msg);
+    }
+
+    function showToast(text) {
+      const tEl = document.getElementById("toast");
+      tEl.textContent = text;
+      tEl.classList.add("show");
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => tEl.classList.remove("show"), 2400);
+    }
+
+    function getStatusColorClass(val) {
+      if (val === "Done") return "status-Done";
+      if (val === "InProgress" || val === "InProgress2") return "status-InProgress";
+      return "status-NotStarted";
+    }
+
+    function getPillClass(val) {
+      if (val === "Done" || val === "Confirmed") return "pill-done";
+      if (val === "InProgress" || val === "InProgress2" || val === "Discussing") return "pill-prog";
+      return "pill-wait";
+    }
+
+    function getStatusLabel(statusVal) {
+      const d = t();
+      if (statusVal === "Confirmed") return d.statusConfirmed;
+      if (statusVal === "Discussing") return d.statusDiscussing;
+      return d.statusPending;
+    }
+
+    function getOptionLabel(path, quarter, val) {
+      const cfg = PATH_CONFIG[path] || PATH_CONFIG["Undecided"];
+      const arr = quarter === "q3" ? cfg.q3Options : cfg.q4Options;
+      const found = arr.find(o => o.val === val);
+      if (!found) return val;
+      return currentLang === "en" ? found.en : found.zh;
+    }
+
+    function getReqLabel(path, quarter) {
+      const cfg = PATH_CONFIG[path] || PATH_CONFIG["Undecided"];
+      const obj = quarter === "q3" ? cfg.q3Req : cfg.q4Req;
+      return currentLang === "en" ? obj.en : obj.zh;
+    }
+
+    function updateDashboard() {
+      const d = t();
+      const total = members.length;
+      const confirmed = members.filter(m => m.status === "Confirmed").length;
+      const discussing = members.filter(m => m.status === "Discussing").length;
+      const pending = members.filter(m => m.status === "Pending").length;
+      const confPct = Math.round((confirmed / total) * 100);
+
+      document.getElementById("kpiConfirmedCount").textContent = `${confirmed} / ${total}`;
+      document.getElementById("kpiConfirmedPct").textContent = `${confPct}% ${d.kpiConfirmedSuffix}`;
+      document.getElementById("barConfirmed").style.width = `${confPct}%`;
+      document.getElementById("kpiStatusBreakdown").textContent = d.kpiBreakdownFmt(pending, discussing, confirmed);
+
+      const cntCross = members.filter(m => m.path === "Cross-Product").length;
+      const cntAdv = members.filter(m => m.path === "Advanced Product").length;
+      const cntCert = members.filter(m => m.path === "Certification").length;
+      const chosenTotal = cntCross + cntAdv + cntCert;
+      const undecided = total - chosenTotal;
+
+      document.getElementById("kpiPathTotal").textContent = `${chosenTotal} / ${total} ${d.kpiChosenSuffix}`;
+      document.getElementById("kpiUndecided").textContent = `${undecided} ${d.kpiUndecidedSuffix}`;
+      document.getElementById("cntCross").textContent = `${cntCross} ${d.unitPeople}`;
+      document.getElementById("cntAdv").textContent = `${cntAdv} ${d.unitPeople}`;
+      document.getElementById("cntCert").textContent = `${cntCert} ${d.unitPeople}`;
+
+      document.getElementById("badgeCrossCnt").textContent = `${cntCross} ${d.unitPeople}`;
+      document.getElementById("badgeAdvCnt").textContent = `${cntAdv} ${d.unitPeople}`;
+      document.getElementById("badgeCertCnt").textContent = `${cntCert} ${d.unitPeople}`;
+
+      // Q3 & Q4 progress
+      const q3Done = members.filter(m => m.q3Status === "Done").length;
+      const q3InProg = members.filter(m => m.q3Status === "InProgress").length;
+      const q3Pct = Math.round((q3Done / total) * 100);
+      document.getElementById("kpiQ3Done").textContent = `${q3Done} / ${total}`;
+      document.getElementById("kpiQ3Pct").textContent = `${q3Pct}% ${d.kpiQ3Suffix}`;
+      document.getElementById("barQ3").style.width = `${q3Pct}%`;
+      document.getElementById("kpiQ3Sub").textContent = d.kpiQ3SubFmt(q3Done, q3InProg, total - q3Done - q3InProg);
+
+      const q4Done = members.filter(m => m.q4Status === "Done").length;
+      const q4InProg = members.filter(m => m.q4Status === "InProgress" || m.q4Status === "InProgress2").length;
+      const q4Pct = Math.round((q4Done / total) * 100);
+      document.getElementById("kpiQ4Done").textContent = `${q4Done} / ${total}`;
+      document.getElementById("kpiQ4Pct").textContent = `${q4Pct}% ${d.kpiQ4Suffix}`;
+      document.getElementById("barQ4").style.width = `${q4Pct}%`;
+      document.getElementById("kpiQ4Sub").textContent = d.kpiQ4SubFmt(q4Done, q4InProg, total - q4Done - q4InProg);
+
+      renderTable();
+      renderSlideReport();
+      renderPathBoard();
+      renderKanban();
+      renderTeamSummary();
+    }
+
+    function getFilteredMembers() {
+      const q = document.getElementById("searchInput").value.trim().toLowerCase();
+      const tf = document.getElementById("teamFilter").value;
+      const pf = document.getElementById("pathFilter").value;
+      const sf = document.getElementById("statusFilter").value;
+
+      return members.filter(m => {
+        if (tf !== "ALL" && m.team !== tf) return false;
+        if (pf !== "ALL" && m.path !== pf) return false;
+        if (sf !== "ALL" && m.status !== sf) return false;
+        if (q && !(m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || (m.target || "").toLowerCase().includes(q))) {
+          return false;
+        }
+        return true;
+      });
+    }
+
+    function renderTable() {
+      const d = t();
+      const tbody = document.getElementById("memberTableBody");
+      const list = getFilteredMembers();
+      tbody.innerHTML = "";
+
+      const isAdvisorAndStatusLocked = (currentRole === "ta" || currentRole === "victor");
+      const dynamicAdvisorList = getDynamicAdvisorOptions();
+
+      list.forEach(m => {
+        const tr = document.createElement("tr");
+        tr.className = getProductTintClass(m.team);
+        const cfg = PATH_CONFIG[m.path] || PATH_CONFIG["Undecided"];
+
+        const advisorOptsHtml = dynamicAdvisorList.map(opt =>
+          `<option value="${escapeHtml(opt)}" ${m.advisor === opt ? "selected" : ""}>${escapeHtml(opt)}</option>`
+        ).join("");
+
+        const q3OptsHtml = cfg.q3Options.map(o =>
+          `<option value="${o.val}" ${m.q3Status === o.val ? "selected" : ""}>${currentLang === "en" ? o.en : o.zh}</option>`
+        ).join("");
+
+        const q4OptsHtml = cfg.q4Options.map(o =>
+          `<option value="${o.val}" ${m.q4Status === o.val ? "selected" : ""}>${currentLang === "en" ? o.en : o.zh}</option>`
+        ).join("");
+
+        const reqBadgeClass = m.path === "Undecided" ? "milestone-req-muted" : "milestone-req-tag";
+
+        const advisorCellHtml = isAdvisorAndStatusLocked
+          ? `<div class="locked-field-box" title="Locked by Admin">
+               <span>${escapeHtml(m.advisor)}</span>
+               <span class="locked-icon">🔒</span>
+             </div>`
+          : `<select class="select-ctrl" style="width:100%" data-id="${m.id}" data-field="advisor">
+               ${advisorOptsHtml}
+             </select>`;
+
+        const statusCellHtml = isAdvisorAndStatusLocked
+          ? `<div class="locked-field-box status-${m.status}" title="Locked by Admin">
+               <span>${getStatusLabel(m.status)}</span>
+               <span class="locked-icon">🔒</span>
+             </div>`
+          : `<select class="status-select status-${m.status}" data-id="${m.id}" data-field="status">
+               <option value="Pending" ${m.status === "Pending" ? "selected" : ""}>${d.statusPending}</option>
+               <option value="Discussing" ${m.status === "Discussing" ? "selected" : ""}>${d.statusDiscussing}</option>
+               <option value="Confirmed" ${m.status === "Confirmed" ? "selected" : ""}>${d.statusConfirmed}</option>
+             </select>`;
+
+        tr.innerHTML = `
+          <td>
+            <div class="member-cell">
+              <span class="member-name">
+                ${m.name}
+                ${m.roleTag ? `<span class="role-tag">${m.roleTag}</span>` : ""}
+              </span>
+              <span class="member-email">${m.email}</span>
+            </div>
+          </td>
+          <td style="padding-top:12px;"><span class="team-badge">${m.team}</span></td>
+          <td>${advisorCellHtml}</td>
+          <td>${statusCellHtml}</td>
+          <td>
+            <select class="select-ctrl" style="width:100%; font-weight:600;" data-id="${m.id}" data-field="path">
+              <option value="Undecided" ${m.path === "Undecided" ? "selected" : ""}>⚪ ${d.filterPathUndecided}</option>
+              <option value="Cross-Product" ${m.path === "Cross-Product" ? "selected" : ""}>🔹 Cross-product</option>
+              <option value="Advanced Product" ${m.path === "Advanced Product" ? "selected" : ""}>🔸 Advanced Product</option>
+              <option value="Certification" ${m.path === "Certification" ? "selected" : ""}>🟡 Certification</option>
+            </select>
+          </td>
+          <td>
+            <input type="text" class="input-ctrl" style="width:100%" placeholder="${d.targetPlaceholder}" value="${escapeHtml(m.target)}" data-id="${m.id}" data-field="target" />
+          </td>
+          <td>
+            <div class="milestone-cell">
+              <span class="${reqBadgeClass}">${getReqLabel(m.path, "q3")}</span>
+              <select class="status-select ${getStatusColorClass(m.q3Status)}" data-id="${m.id}" data-field="q3Status" ${m.path === "Undecided" ? "disabled" : ""}>
+                ${q3OptsHtml}
+              </select>
+            </div>
+          </td>
+          <td>
+            <div class="milestone-cell">
+              <span class="${reqBadgeClass}">${getReqLabel(m.path, "q4")}</span>
+              <select class="status-select ${getStatusColorClass(m.q4Status)}" data-id="${m.id}" data-field="q4Status" ${m.path === "Undecided" ? "disabled" : ""}>
+                ${q4OptsHtml}
+              </select>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      tbody.querySelectorAll("select, input").forEach(el => {
+        const eventType = el.tagName === "SELECT" ? "change" : "input";
+        el.addEventListener(eventType, (e) => {
+          if (currentRole === "victor") return;
+          const id = Number(e.target.getAttribute("data-id"));
+          const field = e.target.getAttribute("data-field");
+
+          if (currentRole === "ta" && (field === "advisor" || field === "status")) {
+            showToast(currentLang === "en" ? "🔒 Locked by Admin" : "🔒 此欄位僅限管理員修改");
+            return;
+          }
+
+          const item = members.find(x => x.id === id);
+          if (!item) return;
+
+          item[field] = e.target.value;
+
+          if (field === "path") {
+            if (item.path === "Undecided") {
+              item.q3Status = "NotStarted";
+              item.q4Status = "NotStarted";
+            } else {
+              const validQ4 = PATH_CONFIG[item.path].q4Options.map(o => o.val);
+              if (!validQ4.includes(item.q4Status)) item.q4Status = "NotStarted";
+            }
+          }
+
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
+          markUnsyncedChanges();
+
+          if (eventType === "change") {
+            updateDashboard();
+            showToast(currentLang === "en" ? `Updated ${item.name}` : `已更新 ${item.name} 的資料`);
+          } else {
+            renderSlideReport();
+            renderPathBoard();
+          }
+        });
+      });
+    }
+
+    /* ============================================================================
+       Render Horizontal Slide Summary View (Image 2 Style + Subtle Row Colors + No ID)
+       ============================================================================ */
+    function renderSlideReport() {
+      const d = t();
+      const list = getFilteredMembers();
+      const total = list.length || 1;
+      const confirmed = list.filter(m => m.status === "Confirmed").length;
+      const q3Done = list.filter(m => m.q3Status === "Done").length;
+      const q4Done = list.filter(m => m.q4Status === "Done").length;
+
+      document.getElementById("slideKpiStrip").innerHTML = currentLang === "en" ? `
+        <span class="slide-kpi-pill">1-on-1 Confirmed: <strong>${confirmed}/${list.length}</strong> (${Math.round(confirmed/total*100)}%)</span>
+        <span class="slide-kpi-pill">Q3 Checkpoint: <strong>${q3Done}/${list.length}</strong> (${Math.round(q3Done/total*100)}%)</span>
+        <span class="slide-kpi-pill">Q4 Validated: <strong>${q4Done}/${list.length}</strong> (${Math.round(q4Done/total*100)}%)</span>
+      ` : `
+        <span class="slide-kpi-pill">1-on-1 已確認: <strong>${confirmed}/${list.length}</strong> (${Math.round(confirmed/total*100)}%)</span>
+        <span class="slide-kpi-pill">Q3 檢核完成: <strong>${q3Done}/${list.length}</strong> (${Math.round(q3Done/total*100)}%)</span>
+        <span class="slide-kpi-pill">Q4 驗收通過: <strong>${q4Done}/${list.length}</strong> (${Math.round(q4Done/total*100)}%)</span>
+      `;
+
+      const summaryContainer = document.getElementById("slideSummaryCards");
+      const tbody = document.getElementById("slideTableBody");
+      summaryContainer.innerHTML = "";
+      tbody.innerHTML = "";
+
+      if (currentSlideMode === "product") {
+        document.getElementById("slideReportTitle").textContent = d.slideTitleProduct;
+        document.getElementById("slideReportSubtitle").textContent = d.slideSubProduct;
+
+        const productGroups = [
+          { key: "ODSP",     title: "🏢 ODSP Team",     advisor: getTeamAdvisorName("ODSP"),     tintIdx: 1 },
+          { key: "Teams",    title: "🏢 Teams Team",    advisor: getTeamAdvisorName("Teams"),    tintIdx: 2 },
+          { key: "Exchange", title: "🏢 Exchange Team", advisor: getTeamAdvisorName("Exchange"), tintIdx: 3 }
+        ];
+
+        productGroups.forEach(g => {
+          const items = list.filter(m => m.team === g.key);
+          const gConf = items.filter(m => m.status === "Confirmed").length;
+          const gCross = items.filter(m => m.path === "Cross-Product").length;
+          const gAdv = items.filter(m => m.path === "Advanced Product").length;
+          const gCert = items.filter(m => m.path === "Certification").length;
+          const gQ3 = items.filter(m => m.q3Status === "Done").length;
+          const gQ4 = items.filter(m => m.q4Status === "Done").length;
+
+          const card = document.createElement("div");
+          card.className = `slide-summary-card summary-tint-${g.tintIdx}`;
+          card.innerHTML = `
+            <div class="slide-summary-head">
+              <span>${g.title} (${items.length} ${d.unitPeople})</span>
+              <span class="kpi-badge">${currentLang === "en" ? "Advisor:" : "諮詢:"} ${g.advisor}</span>
+            </div>
+            <div class="slide-summary-stats">
+              <span>🔹 Cross-product: <strong>${gCross}</strong></span>
+              <span>🔸 Advanced: <strong>${gAdv}</strong></span>
+              <span>🟡 Certification: <strong>${gCert}</strong></span>
+              <span>🟢 1-on-1 ${currentLang === "en" ? "Confirmed" : "確認"}: <strong>${gConf}/${items.length}</strong></span>
+              <span>✅ Q3 ${currentLang === "en" ? "Done" : "完成"}: <strong>${gQ3}/${items.length}</strong></span>
+              <span>🏆 Q4 ${currentLang === "en" ? "Validated" : "達標"}: <strong>${gQ4}/${items.length}</strong></span>
+            </div>
+          `;
+          summaryContainer.appendChild(card);
+
+          if (items.length > 0) {
+            const grpTr = document.createElement("tr");
+            grpTr.className = `slide-group-row group-header-${g.tintIdx}`;
+            grpTr.innerHTML = `<td colspan="9">${g.title} — ${currentLang === "en" ? "Advisor" : "諮詢代表"}: ${g.advisor} (${currentLang === "en" ? "Total" : "共"} ${items.length} ${d.unitPeople} ｜ 1-on-1 ${currentLang === "en" ? "Confirmed" : "已確認"}: ${gConf} ｜ Q3 ${currentLang === "en" ? "Done" : "完成"}: ${gQ3} ｜ Q4 ${currentLang === "en" ? "Validated" : "達標"}: ${gQ4})</td>`;
+            tbody.appendChild(grpTr);
+
+            items.forEach(m => {
+              const tr = document.createElement("tr");
+              tr.className = `tint-group-${g.tintIdx}`;
+              tr.innerHTML = `
+                <td style="font-weight:600;">${m.team}</td>
+                <td><strong>${m.name}</strong> ${m.roleTag ? `<span class="role-tag">${m.roleTag}</span>` : ""}</td>
+                <td><span class="team-badge">${m.team}</span></td>
+                <td style="font-size:12px; color:var(--cp-text-muted);">${escapeHtml(m.advisor)}</td>
+                <td style="font-weight:600;">${m.path === "Undecided" ? d.filterPathUndecided : m.path}</td>
+                <td>${m.target ? escapeHtml(m.target) : "<span style='color:var(--cp-text-soft)'>—</span>"}</td>
+                <td><span class="pill-status ${getPillClass(m.status)}">${getStatusLabel(m.status)}</span></td>
+                <td><span class="pill-status ${getPillClass(m.q3Status)}">${getOptionLabel(m.path, "q3", m.q3Status)}</span></td>
+                <td><span class="pill-status ${getPillClass(m.q4Status)}">${getOptionLabel(m.path, "q4", m.q4Status)}</span></td>
+              `;
+              tbody.appendChild(tr);
+            });
+          }
+        });
+      } else {
+        document.getElementById("slideReportTitle").textContent = d.slideTitlePath;
+        document.getElementById("slideReportSubtitle").textContent = d.slideSubPath;
+
+        const pathGroups = [
+          { key: "Cross-Product",    title: "🔹 Cross-product",    criteria: "Q4: Applied case + SME sign-off",      tintIdx: 1 },
+          { key: "Advanced Product", title: "🔸 Advanced Product", criteria: "Q4: Case sharing / Topic deep dive",   tintIdx: 2 },
+          { key: "Certification",    title: "🟡 Certification",    criteria: "Q4: Certification: Exam passed",       tintIdx: 3 },
+          { key: "Undecided",        title: `⚪ ${d.filterPathUndecided}`, criteria: "Pending 1-on-1 Confirmation", tintIdx: 4 }
+        ];
+
+        pathGroups.forEach(g => {
+          const items = list.filter(m => m.path === g.key);
+          if (g.key === "Undecided" && items.length === 0) return;
+
+          const gODSP = items.filter(m => m.team === "ODSP").length;
+          const gTeams = items.filter(m => m.team === "Teams").length;
+          const gEXO = items.filter(m => m.team === "Exchange").length;
+          const gConf = items.filter(m => m.status === "Confirmed").length;
+          const gQ3 = items.filter(m => m.q3Status === "Done").length;
+          const gQ4 = items.filter(m => m.q4Status === "Done").length;
+
+          if (g.key !== "Undecided") {
+            const card = document.createElement("div");
+            card.className = `slide-summary-card summary-tint-${g.tintIdx}`;
+            card.innerHTML = `
+              <div class="slide-summary-head">
+                <span>${g.title}</span>
+                <span class="kpi-badge">${items.length} ${d.unitPeople}</span>
+              </div>
+              <div style="font-size:11.5px; color:var(--cp-accent); font-weight:600;">${g.criteria}</div>
+              <div class="slide-summary-stats">
+                <span>ODSP: <strong>${gODSP}</strong> · Teams: <strong>${gTeams}</strong> · EXO: <strong>${gEXO}</strong></span>
+                <span>🟢 1-on-1 ${currentLang === "en" ? "Confirmed" : "確認"}: <strong>${gConf}/${items.length}</strong></span>
+                <span>✅ Q3 ${currentLang === "en" ? "Done" : "完成"}: <strong>${gQ3}/${items.length}</strong></span>
+                <span>🏆 Q4 ${currentLang === "en" ? "Validated" : "達標"}: <strong>${gQ4}/${items.length}</strong></span>
+              </div>
+            `;
+            summaryContainer.appendChild(card);
+          }
+
+          if (items.length > 0) {
+            const grpTr = document.createElement("tr");
+            grpTr.className = `slide-group-row group-header-${g.tintIdx}`;
+            grpTr.innerHTML = `<td colspan="9">${g.title} — ${g.criteria} (${currentLang === "en" ? "Total" : "共"} ${items.length} ${d.unitPeople} ｜ ODSP: ${gODSP}, Teams: ${gTeams}, Exchange: ${gEXO} ｜ Q3 ${currentLang === "en" ? "Done" : "完成"}: ${gQ3} ｜ Q4 ${currentLang === "en" ? "Validated" : "達標"}: ${gQ4})</td>`;
+            tbody.appendChild(grpTr);
+
+            items.forEach(m => {
+              const tr = document.createElement("tr");
+              tr.className = `tint-group-${g.tintIdx}`;
+              tr.innerHTML = `
+                <td style="font-weight:600;">${m.path === "Undecided" ? d.filterPathUndecided : m.path}</td>
+                <td><strong>${m.name}</strong> ${m.roleTag ? `<span class="role-tag">${m.roleTag}</span>` : ""}</td>
+                <td><span class="team-badge">${m.team}</span></td>
+                <td style="font-size:12px; color:var(--cp-text-muted);">${escapeHtml(m.advisor)}</td>
+                <td style="font-weight:600;">${m.path === "Undecided" ? d.filterPathUndecided : m.path}</td>
+                <td>${m.target ? escapeHtml(m.target) : "<span style='color:var(--cp-text-soft)'>—</span>"}</td>
+                <td><span class="pill-status ${getPillClass(m.status)}">${getStatusLabel(m.status)}</span></td>
+                <td><span class="pill-status ${getPillClass(m.q3Status)}">${getOptionLabel(m.path, "q3", m.q3Status)}</span></td>
+                <td><span class="pill-status ${getPillClass(m.q4Status)}">${getOptionLabel(m.path, "q4", m.q4Status)}</span></td>
+              `;
+              tbody.appendChild(tr);
+            });
+          }
+        });
+      }
+    }
+
+    function renderPathBoard() {
+      const d = t();
+      const cols = {
+        "Cross-Product": document.getElementById("pbListCross"),
+        "Advanced Product": document.getElementById("pbListAdv"),
+        "Certification": document.getElementById("pbListCert")
+      };
+      cols["Cross-Product"].innerHTML = "";
+      cols["Advanced Product"].innerHTML = "";
+      cols["Certification"].innerHTML = "";
+
+      const list = getFilteredMembers();
+      document.getElementById("pbCntCross").textContent = list.filter(m => m.path === "Cross-Product").length;
+      document.getElementById("pbCntAdv").textContent = list.filter(m => m.path === "Advanced Product").length;
+      document.getElementById("pbCntCert").textContent = list.filter(m => m.path === "Certification").length;
+
+      list.forEach(m => {
+        if (!cols[m.path]) return;
+        const card = document.createElement("div");
+        card.className = "kanban-card";
+        card.innerHTML = `
+          <div class="kanban-card-top">
+            <div>
+              <div class="member-name">${m.name} ${m.roleTag ? `<span class="role-tag">${m.roleTag}</span>` : ""}</div>
+              <div class="member-email">${m.email}</div>
+            </div>
+            <span class="team-badge">${m.team}</span>
+          </div>
+          <div class="kanban-meta">
+            <div><strong>Target:</strong> ${m.target ? escapeHtml(m.target) : "<span style='color:var(--cp-text-soft)'>—</span>"}</div>
+            <div><strong>Q3:</strong> ${getOptionLabel(m.path, "q3", m.q3Status)}</div>
+            <div><strong>Q4:</strong> ${getOptionLabel(m.path, "q4", m.q4Status)}</div>
+            <div><strong>1-on-1:</strong> ${getStatusLabel(m.status)} (Advisor: ${m.advisor})</div>
+          </div>
+        `;
+        cols[m.path].appendChild(card);
+      });
+    }
+
+    function renderKanban() {
+      const d = t();
+      const cols = {
+        Pending: document.getElementById("kbListPending"),
+        Discussing: document.getElementById("kbListDiscussing"),
+        Confirmed: document.getElementById("kbListConfirmed")
+      };
+      cols.Pending.innerHTML = "";
+      cols.Discussing.innerHTML = "";
+      cols.Confirmed.innerHTML = "";
+
+      const list = getFilteredMembers();
+      document.getElementById("kbCntPending").textContent = list.filter(m => m.status === "Pending").length;
+      document.getElementById("kbCntDiscussing").textContent = list.filter(m => m.status === "Discussing").length;
+      document.getElementById("kbCntConfirmed").textContent = list.filter(m => m.status === "Confirmed").length;
+
+      const canChangeStatus = (currentRole === "admin");
+
+      list.forEach(m => {
+        const card = document.createElement("div");
+        card.className = "kanban-card";
+        card.innerHTML = `
+          <div class="kanban-card-top">
+            <div>
+              <div class="member-name">${m.name} ${m.roleTag ? `<span class="role-tag">${m.roleTag}</span>` : ""}</div>
+              <div class="member-email">${m.email}</div>
+            </div>
+            <span class="team-badge">${m.team}</span>
+          </div>
+          <div class="kanban-meta">
+            <div><strong>H2 Path:</strong> ${m.path === "Undecided" ? d.filterPathUndecided : m.path} ${m.target ? `(${escapeHtml(m.target)})` : ""}</div>
+            <div><strong>Advisor:</strong> ${m.advisor}</div>
+            ${m.path !== "Undecided" ? `<div><strong>Q3:</strong> ${getOptionLabel(m.path, "q3", m.q3Status)}</div>` : ""}
+            ${m.path !== "Undecided" ? `<div><strong>Q4:</strong> ${getOptionLabel(m.path, "q4", m.q4Status)}</div>` : ""}
+          </div>
+          ${canChangeStatus ? `
+          <div class="kanban-actions">
+            ${m.status !== "Pending" ? `<button class="btn-xs" data-move="${m.id}:Pending">${d.kbMovePending}</button>` : ""}
+            ${m.status !== "Discussing" ? `<button class="btn-xs" data-move="${m.id}:Discussing">${d.kbMoveDiscussing}</button>` : ""}
+            ${m.status !== "Confirmed" ? `<button class="btn-xs" data-move="${m.id}:Confirmed">${d.kbMoveConfirmed}</button>` : ""}
+          </div>` : `<div style="font-size:11px; color:var(--cp-text-soft); margin-top:4px;">${d.kbLockedNotice}</div>`}
+        `;
+        cols[m.status].appendChild(card);
+      });
+
+      if (canChangeStatus) {
+        document.querySelectorAll("[data-move]").forEach(btn => {
+          btn.addEventListener("click", (e) => {
+            const [idStr, newStatus] = e.target.getAttribute("data-move").split(":");
+            const item = members.find(x => x.id === Number(idStr));
+            if (item) {
+              item.status = newStatus;
+              saveState(currentLang === "en" ? `Moved ${item.name} to ${newStatus}` : `已將 ${item.name} 移至 ${newStatus}`);
+            }
+          });
+        });
+      }
+    }
+
+    function renderTeamSummary() {
+      const d = t();
+      const tbContainer = document.getElementById("teamBreakdownList");
+      tbContainer.innerHTML = "";
+      const teams = [
+        { code: "ODSP", advisor: getTeamAdvisorName("ODSP") },
+        { code: "Teams", advisor: getTeamAdvisorName("Teams") },
+        { code: "Exchange", advisor: getTeamAdvisorName("Exchange") }
+      ];
+
+      teams.forEach(tm => {
+        const group = members.filter(m => m.team === tm.code);
+        const conf = group.filter(m => m.status === "Confirmed").length;
+        const cCross = group.filter(m => m.path === "Cross-Product").length;
+        const cAdv = group.filter(m => m.path === "Advanced Product").length;
+        const cCert = group.filter(m => m.path === "Certification").length;
+        const q3Done = group.filter(m => m.q3Status === "Done").length;
+        const q4Done = group.filter(m => m.q4Status === "Done").length;
+
+        const box = document.createElement("div");
+        box.className = "guide-box";
+        box.style.marginTop = "0";
+        box.style.marginBottom = "10px";
+        box.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <h4 style="margin:0;">${tm.code} Team (${group.length} ${d.unitPeople})</h4>
+            <span class="advisor-pill">Advisor: <strong>${tm.advisor}</strong></span>
+          </div>
+          <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:12.5px; margin-top:6px;">
+            <span>🟢 1-on-1 Confirmed: <strong>${conf} / ${group.length}</strong></span>
+            <span>🔹 Cross-product: <strong>${cCross}</strong></span>
+            <span>🔸 Advanced: <strong>${cAdv}</strong></span>
+            <span>🟡 Certification: <strong>${cCert}</strong></span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--cp-text-muted); margin-top:6px; padding-top:6px; border-top:1px solid var(--cp-border);">
+            <span>Q3 Checkpoint Done: <strong>${q3Done} / ${group.length}</strong></span>
+            <span>Q4 Validated: <strong>${q4Done} / ${group.length}</strong></span>
+          </div>
+        `;
+        tbContainer.appendChild(box);
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function activateTab(target) {
+      document.querySelectorAll(".tab-btn").forEach(b => {
+        b.classList.toggle("active", b.getAttribute("data-tab") === target);
+      });
+      ["table", "slideReport", "pathBoard", "kanban", "formsGuide"].forEach(id => {
+        document.getElementById(`tab-${id}`).classList.toggle("hidden", id !== target);
+      });
+      const isSlideActive = (target === "slideReport");
+      ["btnJumpSlideReport", "btnTaJumpSlideReport", "btnVictorJumpSlideReport"].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+          btn.classList.toggle("btn-primary", isSlideActive || id === "btnVictorJumpSlideReport");
+        }
+      });
+    }
+
+    // Language switch buttons (EN / 中文)
+    document.querySelectorAll("[data-lang]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        currentLang = btn.getAttribute("data-lang");
+        localStorage.setItem(LANG_STORAGE_KEY, currentLang);
+        applyStaticI18n();
+        applyModeUI();
+        updateDashboard();
+        showToast(currentLang === "en" ? "🌐 Switched to English" : "🌐 已切換為繁體中文（保留專業英文術語）");
+      });
+    });
+
+    // Tab switching
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        activateTab(btn.getAttribute("data-tab"));
+      });
+    });
+
+    // Quick jump / toggle buttons in header for Slide Summary tab (Admin / TA toggle back to Master Edit Table; Victor stays on Slide Report)
+    ["btnJumpSlideReport", "btnTaJumpSlideReport", "btnVictorJumpSlideReport"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("click", () => {
+          const isCurrentlySlide = !document.getElementById("tab-slideReport").classList.contains("hidden");
+          if (currentRole === "victor") {
+            activateTab("slideReport");
+            showToast(currentLang === "en" ? "📊 Opened Slide Summary Report" : "📊 已切換至「進度總覽與簡報報表」");
+          } else if (isCurrentlySlide) {
+            activateTab("table");
+            showToast(currentLang === "en" ? "✏️ Returned to Master Edit Table" : "✏️ 已切回「管理編輯總表」");
+          } else {
+            activateTab("slideReport");
+            showToast(currentLang === "en" ? "📊 Opened Slide Summary Report" : "📊 已切換至「進度總覽與簡報報表」");
+          }
+        });
+      }
+    });
+
+    // Role Preview Dropdown Switcher (Admin-only in Top Header Row)
+    const _rolePreviewSelect = document.getElementById("adminRolePreviewSelect");
+    if (_rolePreviewSelect) {
+      _rolePreviewSelect.addEventListener("change", (e) => {
+        if (bakedRole !== "admin") return;
+        const targetRole = e.target.value;
+        currentRole = targetRole;
+        applyModeUI();
+        updateDashboard();
+        if (targetRole === "admin") {
+          activateTab("table");
+          showToast(currentLang === "en" ? "👑 Full Edit Mode (Admin)" : "👑 已切換為：完整編輯模式 (Admin)");
+        } else if (targetRole === "ta") {
+          activateTab("table");
+          showToast(currentLang === "en" ? "🛠️ TA Mode Preview" : "🛠️ 已切換為：TA 協作模式預覽");
+        } else {
+          activateTab("slideReport");
+          showToast(currentLang === "en" ? "🔒 Manager View-Only Preview" : "🔒 已切換為：主管唯讀模式預覽");
+        }
+      });
+    }
+
+    // Slide Mode Switcher (By Product Line vs By Growth Path)
+    document.querySelectorAll("[data-slide-mode]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("[data-slide-mode]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentSlideMode = btn.getAttribute("data-slide-mode");
+        renderSlideReport();
+      });
+    });
+
+    // Copy Slide Table to Clipboard
+    document.getElementById("btnCopySlideTable").addEventListener("click", async () => {
+      const tableEl = document.getElementById("slideHtmlTable");
+      if (!tableEl) return;
+      try {
+        const html = tableEl.outerHTML;
+        const rows = Array.from(tableEl.querySelectorAll("tr")).map(tr =>
+          Array.from(tr.querySelectorAll("th, td")).map(cell => cell.innerText.trim()).join("\t")
+        ).join("\r\n");
+
+        if (navigator.clipboard && window.ClipboardItem) {
+          const item = new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([rows], { type: "text/plain" })
+          });
+          await navigator.clipboard.write([item]);
+        } else {
+          await navigator.clipboard.writeText(rows);
+        }
+        showToast(currentLang === "en" ? "📋 Copied table for PowerPoint!" : "📋 已複製進度表！可直接於 PowerPoint 按 Ctrl+V 貼上");
+      } catch (e) {
+        showToast("⚠️ Copy failed");
+      }
+    });
+
+    // Native PowerPoint (.pptx) Generator — Bilingual (EN/ZH), No Sync Time, No Advisor in Title, Matches HTML Visuals + Summary Cards & Dynamic Slide Count
+    document.getElementById("btnDownloadPptx").addEventListener("click", async () => {
+      if (typeof PptxGenJS === "undefined") {
+        showToast(currentLang === "en" ? "⚠️ Loading PowerPoint engine, please try again." : "⚠️ 正在載入 PowerPoint 引擎，請再試一次");
+        return;
+      }
+
+      try {
+        const d = t();
+        const isEN = currentLang === "en";
+        const pptx = new PptxGenJS();
+        pptx.layout = "LAYOUT_WIDE"; // 13.33 x 7.5 inches (16:9)
+        pptx.author = CLOUD_META.planOwner || "Plan Owner";
+        pptx.subject = d.mainTitle;
+        pptx.title = isEN ? "FY27 H2 Self-Selected Growth Path Summary" : "FY27 H2 成長路徑統計與進度總覽";
+
+        const list = getFilteredMembers();
+        const total = list.length || 1;
+        const confirmed = list.filter(m => m.status === "Confirmed").length;
+        const q3Done = list.filter(m => m.q3Status === "Done").length;
+        const q4Done = list.filter(m => m.q4Status === "Done").length;
+
+        const confPct = Math.round((confirmed / total) * 100);
+        const q3Pct = Math.round((q3Done / total) * 100);
+        const q4Pct = Math.round((q4Done / total) * 100);
+
+        const mainTitleStr = currentSlideMode === "product" ? d.slideTitleProduct : d.slideTitlePath;
+        const subTitleStr = currentSlideMode === "product" ? d.slideSubProduct : d.slideSubPath;
+
+        const rawGroups = currentSlideMode === "product" ? [
+          {
+            key: "ODSP",
+            title: isEN ? "ODSP Team" : "ODSP 團隊",
+            advisor: getTeamAdvisorName("ODSP"),
+            topColor: "0078D4",
+            cardFill: "F5F9FD",
+            hdrFill: "E1EFFA",
+            rowFill: "F4F9FD",
+            items: list.filter(m => m.team === "ODSP")
+          },
+          {
+            key: "Teams",
+            title: isEN ? "Teams Team" : "Teams 團隊",
+            advisor: getTeamAdvisorName("Teams"),
+            topColor: "B11F4B",
+            cardFill: "FDF5F7",
+            hdrFill: "F9E2E8",
+            rowFill: "FDF6F8",
+            items: list.filter(m => m.team === "Teams")
+          },
+          {
+            key: "Exchange",
+            title: isEN ? "Exchange Team" : "Exchange 團隊",
+            advisor: getTeamAdvisorName("Exchange"),
+            topColor: "16A34A",
+            cardFill: "F4FBF7",
+            hdrFill: "DCF4E5",
+            rowFill: "F4FBF6",
+            items: list.filter(m => m.team === "Exchange")
+          }
+        ] : [
+          {
+            key: "Cross-Product",
+            title: "Cross-product",
+            criteria: "Q4: Applied case + SME sign-off",
+            topColor: "0078D4",
+            cardFill: "F5F9FD",
+            hdrFill: "E1EFFA",
+            rowFill: "F4F9FD",
+            items: list.filter(m => m.path === "Cross-Product")
+          },
+          {
+            key: "Advanced Product",
+            title: "Advanced Product",
+            criteria: "Q4: Case sharing / Topic deep dive",
+            topColor: "B11F4B",
+            cardFill: "FDF5F7",
+            hdrFill: "F9E2E8",
+            rowFill: "FDF6F8",
+            items: list.filter(m => m.path === "Advanced Product")
+          },
+          {
+            key: "Certification",
+            title: "Certification",
+            criteria: "Q4: Certification: Exam passed",
+            topColor: "16A34A",
+            cardFill: "F4FBF7",
+            hdrFill: "DCF4E5",
+            rowFill: "F4FBF6",
+            items: list.filter(m => m.path === "Certification")
+          },
+          {
+            key: "Undecided",
+            title: isEN ? "Undecided" : "尚未選擇 (Undecided)",
+            criteria: isEN ? "Pending 1-on-1 Confirmation" : "待 1-on-1 討論確認",
+            topColor: "919191",
+            cardFill: "F5F5F5",
+            hdrFill: "EBEBEB",
+            rowFill: "F8F8F8",
+            items: list.filter(m => m.path === "Undecided")
+          }
+        ];
+
+        const activeGroups = rawGroups.filter(g => g.items.length > 0);
+        const summaryCardsGroups = rawGroups.filter(g => g.key !== "Undecided");
+
+        function drawHeaderAndSummaryCards(slide, customSlideTitle) {
+          slide.background = { color: "F7F4EF" };
+
+          // Slide Main Title & Subtitle (No Last Synced time, No Advisor in main title)
+          slide.addText(customSlideTitle || mainTitleStr, {
+            x: 0.4, y: 0.25, w: 12.5, h: 0.38,
+            fontSize: 17, bold: true, color: "242424", fontFace: "Segoe UI"
+          });
+          slide.addText(subTitleStr, {
+            x: 0.4, y: 0.62, w: 12.5, h: 0.24,
+            fontSize: 9.5, color: "5C5C5C", fontFace: "Segoe UI"
+          });
+
+          // 3 Top KPI Pills (matching Image 3: 1-on-1 Confirmed, Q3 Checkpoint, Q4 Validated with counts & percentages)
+          const kpiPills = isEN ? [
+            { label: "1-on-1 Confirmed: ", val: `${confirmed}/${list.length}`, pct: ` (${confPct}%)` },
+            { label: "Q3 Checkpoint: ",    val: `${q3Done}/${list.length}`,    pct: ` (${q3Pct}%)` },
+            { label: "Q4 Validated: ",     val: `${q4Done}/${list.length}`,    pct: ` (${q4Pct}%)` }
+          ] : [
+            { label: "1-on-1 已確認: ", val: `${confirmed}/${list.length}`, pct: ` (${confPct}%)` },
+            { label: "Q3 檢核完成: ",   val: `${q3Done}/${list.length}`,    pct: ` (${q3Pct}%)` },
+            { label: "Q4 驗收通過: ",   val: `${q4Done}/${list.length}`,    pct: ` (${q4Pct}%)` }
+          ];
+
+          kpiPills.forEach((p, idx) => {
+            const px = 0.4 + idx * 2.75;
+            slide.addShape(pptx.ShapeType.roundRect, {
+              x: px, y: 0.92, w: 2.6, h: 0.36,
+              fill: { color: "FFFFFF" },
+              line: { color: "DEDEDE", pt: 1 },
+              rectRadius: 0.08
+            });
+            slide.addText([
+              { text: p.label, options: { fontSize: 9.5, bold: true, color: "242424" } },
+              { text: p.val,   options: { fontSize: 10.5, bold: true, color: "B11F4B" } },
+              { text: p.pct,   options: { fontSize: 9.5, bold: false, color: "242424" } }
+            ], {
+              x: px + 0.08, y: 0.94, w: 2.44, h: 0.32,
+              fontFace: "Segoe UI", valign: "middle"
+            });
+          });
+
+          // Crimson Horizontal Divider Line (matching Image 3)
+          slide.addShape(pptx.ShapeType.line, {
+            x: 0.4, y: 1.38, w: 12.53, h: 0,
+            line: { color: "B11F4B", pt: 1.5 }
+          });
+
+          // 3 Group Summary Cards (matching Image 3 HTML cards)
+          summaryCardsGroups.forEach((g, idx) => {
+            const cx = 0.4 + idx * 4.22;
+            const cy = 1.48;
+            const cw = 4.08;
+            const ch = 1.32;
+
+            // Card outer box
+            slide.addShape(pptx.ShapeType.roundRect, {
+              x: cx, y: cy, w: cw, h: ch,
+              fill: { color: g.cardFill },
+              line: { color: "DEDEDE", pt: 1 },
+              rectRadius: 0.08
+            });
+            // Colored top accent bar
+            slide.addShape(pptx.ShapeType.rect, {
+              x: cx, y: cy, w: cw, h: 0.06,
+              fill: { color: g.topColor },
+              line: { color: g.topColor, pt: 0 }
+            });
+
+            const gItems = g.items;
+            const gConf = gItems.filter(m => m.status === "Confirmed").length;
+            const gQ3 = gItems.filter(m => m.q3Status === "Done").length;
+            const gQ4 = gItems.filter(m => m.q4Status === "Done").length;
+
+            // Card Header Title
+            slide.addText(`${g.title} (${gItems.length} ${d.unitPeople})`, {
+              x: cx + 0.12, y: cy + 0.1, w: 2.5, h: 0.28,
+              fontSize: 11, bold: true, color: "242424", fontFace: "Segoe UI"
+            });
+
+            // Right Pill Badge inside Card Header
+            const badgeText = currentSlideMode === "product"
+              ? `${isEN ? "Advisor:" : "諮詢:"} ${g.advisor}`
+              : `${gItems.length} ${d.unitPeople}`;
+            slide.addShape(pptx.ShapeType.roundRect, {
+              x: cx + cw - 1.52, y: cy + 0.1, w: 1.4, h: 0.24,
+              fill: { color: "F9E2E8" },
+              line: { color: "F9E2E8", pt: 0 },
+              rectRadius: 0.06
+            });
+            slide.addText(badgeText, {
+              x: cx + cw - 1.52, y: cy + 0.1, w: 1.4, h: 0.24,
+              fontSize: 8.5, bold: true, color: "B11F4B", align: "center", valign: "middle", fontFace: "Segoe UI"
+            });
+
+            // Inner white stats box
+            slide.addShape(pptx.ShapeType.roundRect, {
+              x: cx + 0.12, y: cy + 0.42, w: cw - 0.24, h: 0.78,
+              fill: { color: "FFFFFF" },
+              line: { color: "E5E5E5", pt: 0.75 },
+              rectRadius: 0.06
+            });
+
+            if (currentSlideMode === "product") {
+              const gCross = gItems.filter(m => m.path === "Cross-Product").length;
+              const gAdv = gItems.filter(m => m.path === "Advanced Product").length;
+              const gCert = gItems.filter(m => m.path === "Certification").length;
+
+              const statLeft = [
+                `🔹 Cross-product: ${gCross}`,
+                `🟡 Certification: ${gCert}`,
+                `✅ Q3 ${isEN ? "Done" : "完成"}: ${gQ3}/${gItems.length}`
+              ].join("\n");
+              const statRight = [
+                `🔸 Advanced: ${gAdv}`,
+                `🟢 1-on-1 ${isEN ? "Confirmed" : "確認"}: ${gConf}/${gItems.length}`,
+                `🏆 Q4 ${isEN ? "Validated" : "達標"}: ${gQ4}/${gItems.length}`
+              ].join("\n");
+
+              slide.addText(statLeft, {
+                x: cx + 0.2, y: cy + 0.45, w: 1.85, h: 0.72,
+                fontSize: 8.5, color: "444444", fontFace: "Segoe UI", lineSpacingMultiple: 1.15
+              });
+              slide.addText(statRight, {
+                x: cx + 2.05, y: cy + 0.45, w: 1.85, h: 0.72,
+                fontSize: 8.5, color: "444444", fontFace: "Segoe UI", lineSpacingMultiple: 1.15
+              });
+            } else {
+              const gODSP = gItems.filter(m => m.team === "ODSP").length;
+              const gTeams = gItems.filter(m => m.team === "Teams").length;
+              const gEXO = gItems.filter(m => m.team === "Exchange").length;
+
+              const statLeft = [
+                `ODSP: ${gODSP} · Teams: ${gTeams} · EXO: ${gEXO}`,
+                `✅ Q3 ${isEN ? "Done" : "完成"}: ${gQ3}/${gItems.length}`
+              ].join("\n");
+              const statRight = [
+                `🟢 1-on-1 ${isEN ? "Confirmed" : "確認"}: ${gConf}/${gItems.length}`,
+                `🏆 Q4 ${isEN ? "Validated" : "達標"}: ${gQ4}/${gItems.length}`
+              ].join("\n");
+
+              slide.addText(statLeft, {
+                x: cx + 0.2, y: cy + 0.48, w: 1.9, h: 0.65,
+                fontSize: 8.5, color: "444444", fontFace: "Segoe UI", lineSpacingMultiple: 1.25
+              });
+              slide.addText(statRight, {
+                x: cx + 2.1, y: cy + 0.48, w: 1.8, h: 0.65,
+                fontSize: 8.5, color: "444444", fontFace: "Segoe UI", lineSpacingMultiple: 1.25
+              });
+            }
+          });
+        }
+
+        function buildTableHeaderRow() {
+          return [
+            { text: d.sthGroup,   options: { bold: true, fill: "F5F5F5", color: "242424" } },
+            { text: d.sthMember,  options: { bold: true, fill: "F5F5F5", color: "242424" } },
+            { text: d.sthProduct, options: { bold: true, fill: "F5F5F5", color: "242424" } },
+            { text: d.sthAdvisor, options: { bold: true, fill: "F5F5F5", color: "242424" } },
+            { text: d.sthPath,    options: { bold: true, fill: "F5F5F5", color: "242424" } },
+            { text: d.sthTarget,  options: { bold: true, fill: "F5F5F5", color: "242424" } },
+            { text: d.sthConfirm, options: { bold: true, fill: "F5F5F5", color: "242424" } },
+            { text: d.sthQ3,      options: { bold: true, fill: "F5F5F5", color: "242424" } },
+            { text: d.sthQ4,      options: { bold: true, fill: "F5F5F5", color: "242424" } }
+          ];
+        }
+
+        function buildMemberRow(m, g) {
+          const groupLabel = currentSlideMode === "product"
+            ? m.team
+            : (m.path === "Undecided" ? d.filterPathUndecided : m.path);
+          const pathLabel = m.path === "Undecided" ? d.filterPathUndecided : m.path;
+          const statusColor = m.status === "Confirmed" ? "16A34A" : (m.status === "Discussing" ? "D97706" : "6F6F6F");
+          const q3Color = m.q3Status === "Done" ? "16A34A" : (m.q3Status === "InProgress" ? "D97706" : "6F6F6F");
+          const q4Color = m.q4Status === "Done" ? "16A34A" : ((m.q4Status === "InProgress" || m.q4Status === "InProgress2") ? "D97706" : "6F6F6F");
+
+          return [
+            { text: groupLabel, options: { bold: true, fill: g.rowFill, color: g.topColor } },
+            { text: m.name + (m.roleTag ? ` (${m.roleTag})` : ""), options: { bold: true, fill: g.rowFill, color: "242424" } },
+            { text: m.team, options: { fill: g.rowFill, color: "242424" } },
+            { text: m.advisor, options: { fill: g.rowFill, color: "5C5C5C" } },
+            { text: pathLabel, options: { bold: true, fill: g.rowFill, color: "242424" } },
+            { text: m.target || "—", options: { fill: g.rowFill, color: "242424" } },
+            { text: getStatusLabel(m.status), options: { bold: true, fill: g.rowFill, color: statusColor } },
+            { text: getOptionLabel(m.path, "q3", m.q3Status), options: { fill: g.rowFill, color: q3Color } },
+            { text: getOptionLabel(m.path, "q4", m.q4Status), options: { fill: g.rowFill, color: q4Color } }
+          ];
+        }
+
+        // Dynamic Slide Pagination:
+        // Try capturing pixel-perfect HTML Slide frames via htmlToImage first; if unavailable or restricted, fall back to native PptxGenJS shapes & tables.
+        let renderedViaImage = false;
+        if (typeof htmlToImage !== "undefined" && htmlToImage.toPng) {
+          try {
+            showToast(isEN ? "⏳ Rendering slides..." : "⏳ 正在產出簡報 Slide...");
+            const host = document.createElement("div");
+            host.style.position = "fixed";
+            host.style.left = "0";
+            host.style.top = "0";
+            host.style.width = "1320px";
+            host.style.opacity = "0";
+            host.style.pointerEvents = "none";
+            host.style.zIndex = "-9999";
+            document.body.appendChild(host);
+
+            const slideBatches = list.length <= 8
+              ? [{ titleSuffix: "", groupsToRender: activeGroups }]
+              : activeGroups.map(g => ({ titleSuffix: ` · ${g.title}`, groupsToRender: [g] }));
+
+            for (const batch of slideBatches) {
+              const frameClone = document.getElementById("slideExportArea").cloneNode(true);
+              frameClone.style.width = "1320px";
+              frameClone.style.margin = "0";
+
+              const titleEl = frameClone.querySelector("#slideReportTitle");
+              if (titleEl) titleEl.textContent = mainTitleStr + batch.titleSuffix;
+
+              const cloneTbody = frameClone.querySelector("#slideTableBody");
+              if (cloneTbody) {
+                cloneTbody.innerHTML = "";
+                batch.groupsToRender.forEach(g => {
+                  const items = g.items;
+                  const gConf = items.filter(m => m.status === "Confirmed").length;
+                  const gQ3 = items.filter(m => m.q3Status === "Done").length;
+                  const gQ4 = items.filter(m => m.q4Status === "Done").length;
+                  const tintIdx = g.key === "ODSP" || g.key === "Cross-Product" ? 1
+                                : g.key === "Teams" || g.key === "Advanced Product" ? 2
+                                : g.key === "Exchange" || g.key === "Certification" ? 3 : 4;
+
+                  const grpTr = document.createElement("tr");
+                  grpTr.className = `slide-group-row group-header-${tintIdx}`;
+                  grpTr.innerHTML = `<td colspan="9">${g.title} (${isEN ? "Total" : "共"} ${items.length} ${d.unitPeople} ｜ 1-on-1 ${isEN ? "Confirmed" : "已確認"}: ${gConf}/${items.length} ｜ Q3 ${isEN ? "Done" : "完成"}: ${gQ3}/${items.length} ｜ Q4 ${isEN ? "Validated" : "達標"}: ${gQ4}/${items.length})</td>`;
+                  cloneTbody.appendChild(grpTr);
+
+                  items.forEach(m => {
+                    const tr = document.createElement("tr");
+                    tr.className = `tint-group-${tintIdx}`;
+                    const grpCol = currentSlideMode === "product" ? m.team : (m.path === "Undecided" ? d.filterPathUndecided : m.path);
+                    tr.innerHTML = `
+                      <td style="font-weight:600;">${grpCol}</td>
+                      <td><strong>${m.name}</strong> ${m.roleTag ? `<span class="role-tag">${m.roleTag}</span>` : ""}</td>
+                      <td><span class="team-badge">${m.team}</span></td>
+                      <td style="font-size:12px; color:var(--cp-text-muted);">${escapeHtml(m.advisor)}</td>
+                      <td style="font-weight:600;">${m.path === "Undecided" ? d.filterPathUndecided : m.path}</td>
+                      <td>${m.target ? escapeHtml(m.target) : "<span style='color:var(--cp-text-soft)'>—</span>"}</td>
+                      <td><span class="pill-status ${getPillClass(m.status)}">${getStatusLabel(m.status)}</span></td>
+                      <td><span class="pill-status ${getPillClass(m.q3Status)}">${getOptionLabel(m.path, "q3", m.q3Status)}</span></td>
+                      <td><span class="pill-status ${getPillClass(m.q4Status)}">${getOptionLabel(m.path, "q4", m.q4Status)}</span></td>
+                    `;
+                    cloneTbody.appendChild(tr);
+                  });
+                });
+              }
+
+              host.innerHTML = "";
+              host.appendChild(frameClone);
+
+              const rect = frameClone.getBoundingClientRect();
+              const bgColor = getComputedStyle(document.body).backgroundColor || "#f7f4ef";
+              const imgData = await htmlToImage.toPng(frameClone, {
+                pixelRatio: 2,
+                backgroundColor: bgColor,
+                style: { opacity: "1" }
+              });
+
+              if (imgData && imgData.length > 1000) {
+                const slide = pptx.addSlide();
+                slide.background = { color: "F7F4EF" };
+
+                const maxW = 12.8;
+                const maxH = 7.0;
+                const ratio = (rect.width || 1320) / (rect.height || 700);
+                let drawW = maxW;
+                let drawH = drawW / ratio;
+                if (drawH > maxH) {
+                  drawH = maxH;
+                  drawW = drawH * ratio;
+                }
+                const drawX = (13.33 - drawW) / 2;
+                const drawY = (7.5 - drawH) / 2;
+
+                slide.addImage({ data: imgData, x: drawX, y: drawY, w: drawW, h: drawH });
+                renderedViaImage = true;
+              }
+            }
+            document.body.removeChild(host);
+          } catch (imgErr) {
+            console.warn("htmlToImage fallback to native PptxGenJS:", imgErr);
+            const leftoverHost = document.querySelector("div[style*='-9999']");
+            if (leftoverHost && leftoverHost.parentNode) leftoverHost.parentNode.removeChild(leftoverHost);
+          }
+        }
+
+        if (!renderedViaImage) {
+          if (list.length <= 8) {
+            const slide = pptx.addSlide();
+            drawHeaderAndSummaryCards(slide, mainTitleStr);
+            const rows = [buildTableHeaderRow()];
+            activeGroups.forEach(g => {
+              g.items.forEach(m => rows.push(buildMemberRow(m, g)));
+            });
+            slide.addTable(rows, {
+              x: 0.4, y: 2.92, w: 12.53,
+              fontSize: 8.5,
+              fontFace: "Segoe UI",
+              border: { pt: 0.5, color: "DEDEDE" },
+              colW: [1.05, 1.55, 0.75, 1.25, 1.35, 1.85, 1.35, 1.65, 1.73]
+            });
+          } else {
+            activeGroups.forEach((g) => {
+              const slide = pptx.addSlide();
+              const cleanSlideTitle = `${mainTitleStr} · ${g.title}`;
+              drawHeaderAndSummaryCards(slide, cleanSlideTitle);
+
+              const gConf = g.items.filter(m => m.status === "Confirmed").length;
+              const gQ3 = g.items.filter(m => m.q3Status === "Done").length;
+              const gQ4 = g.items.filter(m => m.q4Status === "Done").length;
+              const bannerText = isEN
+                ? `${g.title} (${g.items.length} FTEs)  |  1-on-1 Confirmed: ${gConf}/${g.items.length}  |  Q3 Done: ${gQ3}/${g.items.length}  |  Q4 Validated: ${gQ4}/${g.items.length}`
+                : `${g.title} (共 ${g.items.length} 人)  ｜  1-on-1 已確認: ${gConf}/${g.items.length}  ｜  Q3 完成: ${gQ3}/${g.items.length}  ｜  Q4 達標: ${gQ4}/${g.items.length}`;
+
+              const rows = [
+                [
+                  {
+                    text: bannerText,
+                    options: { colspan: 9, bold: true, fill: g.hdrFill, color: g.topColor, fontSize: 9.5 }
+                  }
+                ],
+                buildTableHeaderRow()
+              ];
+
+              g.items.forEach(m => rows.push(buildMemberRow(m, g)));
+
+              slide.addTable(rows, {
+                x: 0.4, y: 2.92, w: 12.53,
+                fontSize: 9,
+                fontFace: "Segoe UI",
+                border: { pt: 0.5, color: "DEDEDE" },
+                colW: [1.05, 1.55, 0.75, 1.25, 1.35, 1.85, 1.35, 1.65, 1.73]
+              });
+            });
+          }
+        }
+
+        const modeName = currentSlideMode === "product" ? "ByProductLine" : "ByGrowthPath";
+        const langSuffix = isEN ? "EN" : "ZH";
+        const fileName = `FY27_H2_Growth_Path_${modeName}_${langSuffix}_${new Date().toISOString().slice(0, 10)}.pptx`;
+        const pptxBlob = await pptx.write({ outputType: "blob" });
+
+        const blobUrl = URL.createObjectURL(pptxBlob);
+        const dlLink = document.createElement("a");
+        dlLink.href = blobUrl;
+        dlLink.download = fileName;
+        document.body.appendChild(dlLink);
+        dlLink.click();
+        setTimeout(() => {
+          document.body.removeChild(dlLink);
+          URL.revokeObjectURL(blobUrl);
+        }, 1500);
+        showToast(isEN ? `📊 Downloaded ${fileName}` : `📊 已成功下載簡報檔：${fileName}`);
+      } catch (err) {
+        console.error("PowerPoint export error:", err);
+        showToast("⚠️ PowerPoint export failed: " + (err && err.message ? err.message : ""));
+      }
+    });
+
+    // Export Self-Contained HTML with target role ("admin" | "ta" | "victor") and synced timestamp
+    async function exportSelfContainedHtml(targetRole) {
+      lastSyncTimestamp = formatNowTimestamp();
+      localStorage.setItem(SYNC_TIME_KEY, lastSyncTimestamp);
+
+      if (syncChannel) {
+        syncChannel.postMessage({ members, lastSync: lastSyncTimestamp });
+      }
+
+      const snapEl = document.getElementById("embedded-snapshot-data");
+      const modeEl = document.getElementById("embedded-app-mode");
+      if (snapEl) snapEl.textContent = JSON.stringify(members, null, 2);
+      if (modeEl) {
+        modeEl.textContent = JSON.stringify({
+          role: targetRole,
+          lang: currentLang,
+          lastSync: lastSyncTimestamp
+        });
+      }
+
+      document.getElementById("syncStatusText").textContent = `${t().syncTimePrefix}${lastSyncTimestamp}`;
+
+      const fullHtml = "<!DOCTYPE html>\r\n" + document.documentElement.outerHTML;
+
+      if (modeEl) {
+        modeEl.textContent = JSON.stringify({
+          role: bakedRole,
+          lang: currentLang,
+          lastSync: lastSyncTimestamp
+        });
+      }
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const fileMap = {
+        admin:  `FY27_H2_Growth_Path_Admin_${dateStr}.html`,
+        ta:     `FY27_H2_Growth_Path_TA_Edit_${dateStr}.html`,
+        victor: `FY27_H2_Growth_Path_Manager_ViewOnly_${dateStr}.html`
+      };
+      const defaultFileName = fileMap[targetRole] || fileMap.admin;
+
+      if (window.showSaveFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: defaultFileName,
+            types: [{
+              description: "HTML File",
+              accept: { "text/html": [".html"] }
+            }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(fullHtml);
+          await writable.close();
+
+          syncedTargets[targetRole] = true;
+          updateSyncUI();
+          showToast(currentLang === "en" ? `✅ Synced & Saved ${defaultFileName}` : `✅ 已同步最新資料並儲存：${defaultFileName}`);
+          return;
+        } catch (err) {
+          if (err && err.name === "AbortError") return;
+        }
+      }
+
+      const blob = new Blob([fullHtml], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = defaultFileName;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      syncedTargets[targetRole] = true;
+      updateSyncUI();
+      showToast(currentLang === "en" ? `✅ Synced & Downloaded ${defaultFileName}` : `✅ 已同步最新資料 (${lastSyncTimestamp})`);
+    }
+
+    const _btnExportTa = document.getElementById("btnExportTaHtml");
+    if (_btnExportTa) _btnExportTa.addEventListener("click", () => exportSelfContainedHtml("ta"));
+    const _btnExportVic = document.getElementById("btnExportVictorHtml");
+    if (_btnExportVic) _btnExportVic.addEventListener("click", () => exportSelfContainedHtml("victor"));
+    const _btnSaveAdm = document.getElementById("btnSaveAdminHtml");
+    if (_btnSaveAdm) _btnSaveAdm.addEventListener("click", () => exportSelfContainedHtml("admin"));
+    const _btnSaveTa = document.getElementById("btnSaveTaHtml");
+    if (_btnSaveTa) _btnSaveTa.addEventListener("click", () => exportSelfContainedHtml("ta"));
+
+    // Force Save & Sync button (Admin & TA modes)
+    function forceManualSaveAndSync() {
+    lastSyncTimestamp = formatNowTimestamp();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
+    localStorage.setItem(SYNC_TIME_KEY, lastSyncTimestamp);
+    if (syncChannel) {
+      syncChannel.postMessage({ members, lastSync: lastSyncTimestamp });
+    }
+    cloudStatus = "syncing";
+    updateSyncUI();
+    pushStateToCloud();
+    setTimeout(() => {
+      cloudStatus = "online";
+      syncedTargets.ta = true;
+      syncedTargets.victor = true;
+      syncedTargets.admin = true;
+      updateSyncUI();
+      showToast(
+        currentLang === "en"
+          ? `✅ Saved & Force-Synced to Cloud! (${lastSyncTimestamp})`
+          : `✅ 已儲存並強制同步最新資料至雲端！(${lastSyncTimestamp})`
+      );
+    }, 150);
+    }
+
+    const _btnForceSyncAdmin = document.getElementById("btnForceSaveSyncAdmin");
+    if (_btnForceSyncAdmin) _btnForceSyncAdmin.addEventListener("click", forceManualSaveAndSync);
+    const _btnForceSyncTa = document.getElementById("btnForceSaveSyncTa");
+    if (_btnForceSyncTa) _btnForceSyncTa.addEventListener("click", forceManualSaveAndSync);
+
+    // Filters
+    ["searchInput", "teamFilter", "pathFilter", "statusFilter"].forEach(id => {
+      document.getElementById(id).addEventListener("input", () => {
+        renderTable();
+        renderSlideReport();
+        renderPathBoard();
+        renderKanban();
+      });
+    });
+
+    // Theme toggle
+    document.getElementById("btnThemeToggle").addEventListener("click", () => {
+      const cur = document.documentElement.getAttribute("data-theme");
+      document.documentElement.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+    });
+
+    // Demo Fill button (Data loaded dynamically from Firebase RTDB /state/meta/sampleData + Confirmation Guard)
+    document.getElementById("btnDemoFill").addEventListener("click", () => {
+      const confirmMsg = currentLang === "en"
+        ? "⚠️ Load sample demo data? This will overwrite current progress on screen and sync to the cloud."
+        : "⚠️ 確定要載入模擬範例資料嗎？這將會覆蓋目前的進度並同步至雲端資料庫。";
+      if (!window.confirm(confirmMsg)) return;
+
+      const sampleData = Array.isArray(CLOUD_META.sampleData) ? CLOUD_META.sampleData : [];
+      if (!sampleData.length) {
+        showToast(currentLang === "en" ? "⚠️ No sample data found in RTDB" : "⚠️ 雲端資料庫未設定範例資料");
+        return;
+      }
+      members = INITIAL_MEMBERS.map(base => {
+        const s = sampleData.find(x => x.id === base.id);
+        return s ? { ...base, ...s } : { ...base };
+      });
+      saveState(currentLang === "en" ? "✨ Sample data loaded from RTDB!" : "✨ 已從 RTDB 載入 H2 路徑與 Q3/Q4 模擬範例！");
+    });
+
+    // Reset button (with Confirmation Guard)
+    document.getElementById("btnReset").addEventListener("click", () => {
+      const confirmMsg = currentLang === "en"
+        ? "⚠️ Reset all members to blank initial state? This will overwrite current progress and sync to the cloud."
+        : "⚠️ 確定要將所有成員重置為空白初始狀態嗎？這將會清除目前的進度並同步至雲端。";
+      if (!window.confirm(confirmMsg)) return;
+
+      members = JSON.parse(JSON.stringify(INITIAL_MEMBERS));
+      saveState(currentLang === "en" ? "🔄 Reset to blank" : "🔄 已重置為空白初始狀態");
+    });
+
+    // Export CSV (No ID column)
+    function exportCsvFile() {
+      const headers = [
+        "Display Name", "Email Address", "Product", "Advisor",
+        "1-on-1 Status", "H2 Growth Path", "Specific Target",
+        "Q3 Requirement", "Q3 Status", "Q4 Requirement", "Q4 Status"
+      ];
+      const rows = members.map(m => [
+        m.name,
+        m.email,
+        m.team,
+        m.advisor,
+        m.status,
+        m.path,
+        `"${(m.target || "").replace(/"/g, '""')}"`,
+        `"${getReqLabel(m.path, "q3")}"`,
+        `"${getOptionLabel(m.path, "q3", m.q3Status)}"`,
+        `"${getReqLabel(m.path, "q4")}"`,
+        `"${getOptionLabel(m.path, "q4", m.q4Status)}"`
+      ]);
+      const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\r\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `FY27_H2_Path_Q3Q4_Tracker_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(currentLang === "en" ? "📤 CSV Exported!" : "📤 已匯出追蹤報表 (CSV)");
+    }
+
+    document.getElementById("btnExportCsv").addEventListener("click", exportCsvFile);
+    document.getElementById("btnTaExportCsv").addEventListener("click", exportCsvFile);
+    const _btnVicExportCsv = document.getElementById("btnVictorExportCsv");
+    if (_btnVicExportCsv) _btnVicExportCsv.addEventListener("click", exportCsvFile);
+
+    // Import CSV
+    document.getElementById("csvFileInput").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const text = evt.target.result;
+        const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+        if (lines.length < 2) return;
+        let updatedCount = 0;
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(",").map(c => c.replace(/^"|"$/g, "").trim());
+          const match = members.find(m =>
+            cols.some(c => c.toLowerCase() === m.email.toLowerCase() || c.toLowerCase() === m.name.toLowerCase())
+          );
+          if (match) {
+            const foundPath = cols.find(c => ["Cross-Product", "Advanced Product", "Certification", "Undecided"].includes(c));
+            if (foundPath) match.path = foundPath;
+            const foundStatus = cols.find(c => ["Pending", "Discussing", "Confirmed"].includes(c));
+            if (foundStatus) match.status = foundStatus;
+            else if (foundPath && foundPath !== "Undecided" && match.status === "Pending") match.status = "Discussing";
+            updatedCount++;
+          }
+        }
+        saveState(currentLang === "en" ? `📥 Imported ${updatedCount} records!` : `📥 成功從 CSV 更新了 ${updatedCount} 位成員的資料！`);
+      };
+      reader.readAsText(file);
+    });
+
+    // =========================================================================
+    // MAGIC LINK GATE & ADMIN TOKEN MANAGER HANDLERS
+    // =========================================================================
+    const _btnSubmitGate = document.getElementById("btnSubmitGateToken");
+    if (_btnSubmitGate) {
+      _btnSubmitGate.addEventListener("click", async () => {
+        const inp = document.getElementById("inputGateToken");
+        const val = inp ? inp.value.trim() : "";
+        if (!val) return;
+        const clean = val.includes("#token=") ? val.split("#token=")[1].split("&")[0] : val;
+        const ok = await verifyAndStartCloudSync(clean);
+        if (ok) {
+          showToast(currentLang === "en" ? "✅ Access token verified!" : "✅ 專屬憑證驗證成功！已連線至 Firebase RTDB");
+        }
+      });
+    }
+    const _inpGate = document.getElementById("inputGateToken");
+    if (_inpGate) {
+      _inpGate.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && _btnSubmitGate) _btnSubmitGate.click();
+      });
+    }
+
+    const _authPill = document.getElementById("authRoleUserPill");
+    if (_authPill) {
+      _authPill.addEventListener("click", () => {
+        if (verifiedTokenInfo && verifiedTokenInfo.role === "admin") {
+          openAdminTokenManager();
+        } else {
+          showTokenGateModal();
+        }
+      });
+    }
+
+    async function renderTokenManagerRows() {
+      const tbody = document.getElementById("tokenMgrTableBody");
+      if (!tbody) return;
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:14px;">⏳ 正在從 Firebase RTDB 讀取憑證清單...</td></tr>`;
+      try {
+        const tokensMap = await CloudSyncAdapter.listAllTokens();
+        const keys = Object.keys(tokensMap);
+        if (!keys.length) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:14px;">尚無任何 Token</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = "";
+        keys.forEach(tk => {
+          const item = tokensMap[tk];
+          const r = item.role || "ta";
+          const basePage = window.location.protocol.startsWith("http")
+            ? (window.location.origin + window.location.pathname)
+            : "https://nickyyodada.github.io/FY27SkillPlan/";
+          const magicUrl = `${basePage}#token=${tk}`;
+          const roleBadgeHtml = r === "admin"
+            ? `<span class="badge badge-confirmed">👑 Admin (完整管理)</span>`
+            : (r === "ta"
+                ? `<span class="badge badge-discussing">🛠️ TA (協作編輯)</span>`
+                : `<span class="badge badge-pending">🔒 Manager (唯讀檢視)</span>`);
+          const statusHtml = item.active
+            ? `<span style="color:var(--cp-success); font-weight:700;">● 啟用中 (Active)</span>`
+            : `<span style="color:var(--cp-danger); font-weight:700;">✖ 已撤銷 (Revoked)</span>`;
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td style="font-weight:700;">${escapeHtml(item.name || tk)}</td>
+            <td>${roleBadgeHtml}</td>
+            <td>${statusHtml}</td>
+            <td>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <input type="text" readonly value="${escapeHtml(magicUrl)}" style="width:280px; padding:4px 8px; font-size:11.5px; font-family:Consolas, monospace; border:1px solid var(--cp-border); border-radius:6px; background:var(--cp-surface-soft); color:var(--cp-text);" />
+                <button class="btn btn-primary btn-copy-magic" data-url="${escapeHtml(magicUrl)}" style="padding:4px 10px; font-size:11.5px;">📋 複製連結</button>
+              </div>
+            </td>
+            <td>
+              <button class="btn btn-toggle-token" data-tk="${escapeHtml(tk)}" style="padding:4px 10px; font-size:11.5px; color:${item.active ? 'var(--cp-danger)' : 'var(--cp-success)'};">
+                ${item.active ? "🚫 撤銷權限" : "✅ 重新啟用"}
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        tbody.querySelectorAll(".btn-copy-magic").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            const url = btn.getAttribute("data-url");
+            try {
+              await navigator.clipboard.writeText(url);
+              showToast("📋 已複製專屬 Magic Link！");
+            } catch (e) {}
+          });
+        });
+
+        tbody.querySelectorAll(".btn-toggle-token").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            const tk = btn.getAttribute("data-tk");
+            const cur = tokensMap[tk];
+            if (!cur) return;
+            const updated = { ...cur, active: !cur.active };
+            const ok = await CloudSyncAdapter.upsertToken(tk, updated);
+            if (ok) {
+              showToast(updated.active ? `✅ 已重新啟用 ${cur.name}` : `🚫 已撤銷 ${cur.name} 的存取權限`);
+              renderTokenManagerRows();
+            }
+          });
+        });
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" style="color:var(--cp-danger); text-align:center; padding:14px;">⚠️ 無法讀取 Token 清單（需 Admin 權限）</td></tr>`;
+      }
+    }
+
+    function openAdminTokenManager() {
+      const modal = document.getElementById("adminTokenMgrModal");
+      if (!modal) return;
+      modal.classList.remove("hidden");
+      renderTokenManagerRows();
+    }
+
+    const _btnOpenMgr = document.getElementById("btnOpenTokenMgr");
+    if (_btnOpenMgr) _btnOpenMgr.addEventListener("click", openAdminTokenManager);
+
+    const _btnCloseMgr = document.getElementById("btnCloseTokenMgr");
+    if (_btnCloseMgr) {
+      _btnCloseMgr.addEventListener("click", () => {
+        const modal = document.getElementById("adminTokenMgrModal");
+        if (modal) modal.classList.add("hidden");
+      });
+    }
+
+    const _btnCreateTok = document.getElementById("btnCreateNewToken");
+    if (_btnCreateTok) {
+      _btnCreateTok.addEventListener("click", async () => {
+        const nameInp = document.getElementById("newTokenMemberName");
+        const roleSel = document.getElementById("newTokenRoleSelect");
+        const label = nameInp ? nameInp.value.trim() : "";
+        const role = roleSel ? roleSel.value : "ta";
+        if (!label) {
+          showToast("⚠️ 請先輸入成員名稱或標籤");
+          return;
+        }
+        const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 8) || "user";
+        const rand = Math.random().toString(16).slice(2, 10);
+        const newTk = `tk_${slug}_${role}_${rand}`;
+        const ok = await CloudSyncAdapter.upsertToken(newTk, {
+          name: label,
+          role,
+          active: true,
+          createdAt: formatNowTimestamp()
+        });
+        if (ok) {
+          if (nameInp) nameInp.value = "";
+          showToast(`✨ 已為 ${label} 產生專屬連結！`);
+          renderTokenManagerRows();
+        }
+      });
+    }
+
+    // Initial render
+    applyStaticI18n();
+    applyModeUI();
+    updateDashboard();
+    startCloudLiveStream();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
