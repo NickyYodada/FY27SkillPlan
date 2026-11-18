@@ -3103,7 +3103,7 @@
         if (tf !== "ALL" && m.team !== tf) return false;
         if (pf !== "ALL" && m.path !== pf) return false;
         if (sf !== "ALL" && m.status !== sf) return false;
-        if (q && !(m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || (m.target || "").toLowerCase().includes(q))) {
+        if (q && !(m.name.toLowerCase().includes(q) || (m.target || "").toLowerCase().includes(q))) {
           return false;
         }
         return true;
@@ -4311,13 +4311,12 @@
     // Export CSV (No ID column)
     function exportCsvFile() {
       const headers = [
-        "Display Name", "Email Address", "Product", "Advisor",
+        "Display Name", "Product", "Advisor",
         "1-on-1 Status", "H2 Growth Path", "Specific Target",
         "Q3 Requirement", "Q3 Status", "Q4 Requirement", "Q4 Status"
       ];
       const rows = members.map(m => [
         m.name,
-        m.email,
         m.team,
         m.advisor,
         m.status,
@@ -4357,7 +4356,7 @@
         for (let i = 1; i < lines.length; i++) {
           const cols = lines[i].split(",").map(c => c.replace(/^"|"$/g, "").trim());
           const match = members.find(m =>
-            cols.some(c => c.toLowerCase() === m.email.toLowerCase() || c.toLowerCase() === m.name.toLowerCase())
+            cols.some(c => c.toLowerCase() === m.name.toLowerCase())
           );
           if (match) {
             const foundPath = cols.find(c => ["Cross-Product", "Advanced Product", "Certification", "Undecided"].includes(c));
