@@ -1881,7 +1881,7 @@
       }
     };
 
-    // Roster & Metadata are stored inside protected Firebase RTDB (/state/roster, /state/meta) so unauthenticated visitors or public GitHub HTML source never expose any team names or roster
+    // Roster & Metadata are stored inside protected Firebase RTDB (/state/roster, /state/meta); fixed product advisors below are public.
     let INITIAL_MEMBERS = [];
     let CLOUD_META = { manager: "", planOwner: "", teams: [], sampleData: [] };
     let lastRenderedMetaFingerprint = "";
@@ -1912,6 +1912,11 @@
     }
 
     function getTeamAdvisorName(teamCode) {
+      switch (teamCode) {
+        case "ODSP": return "Ryan Chen";
+        case "Teams": return "Gordon Lin";
+        case "Exchange": return "Caitlyn Lai";
+      }
       const list = members.length ? members : INITIAL_MEMBERS;
       const taMember = list.find(m => m.team === teamCode && m.roleTag && m.roleTag.includes("TA"));
       if (taMember && taMember.name) return taMember.name;
