@@ -767,6 +767,20 @@
       color: var(--cp-text-muted);
     }
 
+    .non-participating {
+      filter: grayscale(1);
+    }
+
+    tr.non-participating > td {
+      background: var(--cp-surface-soft) !important;
+      color: var(--cp-text-muted);
+    }
+
+    .non-participating :disabled {
+      color: var(--cp-text-muted);
+      cursor: not-allowed;
+    }
+
     .milestone-cell {
       display: flex;
       flex-direction: column;
@@ -1438,6 +1452,13 @@
           </div>
           <div id="kbListConfirmed"></div>
         </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header">
+            <span id="kbHdrNotParticipating">不參加 (Not participating)</span>
+            <span class="kpi-badge" id="kbCntNotParticipating">0</span>
+          </div>
+          <div id="kbListNotParticipating"></div>
+        </div>
       </div>
     </section>
 
@@ -1633,6 +1654,8 @@
         statusPending: "⚪ 待填寫 / 未約談 (Pending)",
         statusDiscussing: "🟡 諮詢討論中 (Discussing)",
         statusConfirmed: "🟢 已確認 (Confirmed)",
+        statusNotParticipating: "不參加 (Not participating)",
+        notRequired: "不需填寫 (Not required)",
         thMember: "FTE 成員 (Name)",
         thProduct: "產品線",
         thAdvisor: "諮詢對象 (Advisor)",
@@ -1760,6 +1783,8 @@
         statusPending: "⚪ Pending",
         statusDiscussing: "🟡 Discussing",
         statusConfirmed: "🟢 Confirmed",
+        statusNotParticipating: "Not participating",
+        notRequired: "Not required",
         thMember: "FTE Member (Name)",
         thProduct: "Product",
         thAdvisor: "Advisor",
@@ -2892,6 +2917,7 @@
         <option value="Pending">${d.statusPending}</option>
         <option value="Discussing">${d.statusDiscussing}</option>
         <option value="Confirmed">${d.statusConfirmed}</option>
+        <option value="NotParticipating">${d.statusNotParticipating}</option>
       `;
       document.getElementById("statusFilter").value = curStatus;
 
@@ -2921,6 +2947,7 @@
       document.getElementById("kbHdrPending").textContent = d.kbHdrPending;
       document.getElementById("kbHdrDiscussing").textContent = d.kbHdrDiscussing;
       document.getElementById("kbHdrConfirmed").textContent = d.kbHdrConfirmed;
+      document.getElementById("kbHdrNotParticipating").textContent = d.statusNotParticipating;
 
       document.getElementById("fgTeamTitle").textContent = d.fgTeamTitle;
       document.getElementById("fgTeamSub").textContent = d.fgTeamSub;
@@ -3026,6 +3053,7 @@
 
     function getStatusLabel(statusVal) {
       const d = t();
+      if (statusVal === "NotParticipating") return d.statusNotParticipating;
       if (statusVal === "Confirmed") return d.statusConfirmed;
       if (statusVal === "Discussing") return d.statusDiscussing;
       return d.statusPending;
@@ -3045,22 +3073,41 @@
       return currentLang === "en" ? obj.en : obj.zh;
     }
 
+    function isParticipating(member) {
+      return member.status !== "NotParticipating";
+    }
+
+    function getPlanStats(list) {
+      const participants = list.filter(isParticipating);
+      return {
+        total: participants.length,
+        confirmed: participants.filter(m => m.status === "Confirmed").length,
+        discussing: participants.filter(m => m.status === "Discussing").length,
+        pending: participants.filter(m => m.status === "Pending").length,
+        cross: participants.filter(m => m.path === "Cross-Product").length,
+        advanced: participants.filter(m => m.path === "Advanced Product").length,
+        certification: participants.filter(m => m.path === "Certification").length,
+        q3Done: participants.filter(m => m.q3Status === "Done").length,
+        q3InProg: participants.filter(m => m.q3Status === "InProgress").length,
+        q4Done: participants.filter(m => m.q4Status === "Done").length,
+        q4InProg: participants.filter(m => m.q4Status === "InProgress" || m.q4Status === "InProgress2").length
+      };
+    }
+
     function updateDashboard() {
       const d = t();
-      const total = members.length;
-      const confirmed = members.filter(m => m.status === "Confirmed").length;
-      const discussing = members.filter(m => m.status === "Discussing").length;
-      const pending = members.filter(m => m.status === "Pending").length;
-      const confPct = Math.round((confirmed / total) * 100);
+      const {
+        total, confirmed, discussing, pending,
+        cross: cntCross, advanced: cntAdv, certification: cntCert,
+        q3Done, q3InProg, q4Done, q4InProg
+      } = getPlanStats(members);
+      const confPct = Math.round((confirmed / (total || 1)) * 100);
 
       document.getElementById("kpiConfirmedCount").textContent = `${confirmed} / ${total}`;
       document.getElementById("kpiConfirmedPct").textContent = `${confPct}% ${d.kpiConfirmedSuffix}`;
       document.getElementById("barConfirmed").style.width = `${confPct}%`;
-      document.getElementById("kpiStatusBreakdown").textContent = d.kpiBreakdownFmt(pending, discussing, confirmed);
-
-      const cntCross = members.filter(m => m.path === "Cross-Product").length;
-      const cntAdv = members.filter(m => m.path === "Advanced Product").length;
-      const cntCert = members.filter(m => m.path === "Certification").length;
+      document.getElementById("kpiStatusBreakdown").textContent =
+        `${d.kpiBreakdownFmt(pending, discussing, confirmed)} · ${d.statusNotParticipating}: ${members.length - total}`;
       const chosenTotal = cntCross + cntAdv + cntCert;
       const undecided = total - chosenTotal;
 
@@ -3075,17 +3122,13 @@
       document.getElementById("badgeCertCnt").textContent = `${cntCert} ${d.unitPeople}`;
 
       // Q3 & Q4 progress
-      const q3Done = members.filter(m => m.q3Status === "Done").length;
-      const q3InProg = members.filter(m => m.q3Status === "InProgress").length;
-      const q3Pct = Math.round((q3Done / total) * 100);
+      const q3Pct = Math.round((q3Done / (total || 1)) * 100);
       document.getElementById("kpiQ3Done").textContent = `${q3Done} / ${total}`;
       document.getElementById("kpiQ3Pct").textContent = `${q3Pct}% ${d.kpiQ3Suffix}`;
       document.getElementById("barQ3").style.width = `${q3Pct}%`;
       document.getElementById("kpiQ3Sub").textContent = d.kpiQ3SubFmt(q3Done, q3InProg, total - q3Done - q3InProg);
 
-      const q4Done = members.filter(m => m.q4Status === "Done").length;
-      const q4InProg = members.filter(m => m.q4Status === "InProgress" || m.q4Status === "InProgress2").length;
-      const q4Pct = Math.round((q4Done / total) * 100);
+      const q4Pct = Math.round((q4Done / (total || 1)) * 100);
       document.getElementById("kpiQ4Done").textContent = `${q4Done} / ${total}`;
       document.getElementById("kpiQ4Pct").textContent = `${q4Pct}% ${d.kpiQ4Suffix}`;
       document.getElementById("barQ4").style.width = `${q4Pct}%`;
@@ -3126,7 +3169,7 @@
 
       list.forEach(m => {
         const tr = document.createElement("tr");
-        tr.className = getProductTintClass(m.team);
+        tr.className = `${getProductTintClass(m.team)}${isParticipating(m) ? "" : " non-participating"}`;
         const cfg = PATH_CONFIG[m.path] || PATH_CONFIG["Undecided"];
 
         const advisorOptsHtml = dynamicAdvisorList.map(opt =>
@@ -3161,6 +3204,7 @@
                <option value="Pending" ${m.status === "Pending" ? "selected" : ""}>${d.statusPending}</option>
                <option value="Discussing" ${m.status === "Discussing" ? "selected" : ""}>${d.statusDiscussing}</option>
                <option value="Confirmed" ${m.status === "Confirmed" ? "selected" : ""}>${d.statusConfirmed}</option>
+               <option value="NotParticipating" ${m.status === "NotParticipating" ? "selected" : ""}>${d.statusNotParticipating}</option>
              </select>`;
 
         tr.innerHTML = `
@@ -3188,7 +3232,7 @@
           </td>
           <td>
             <div class="milestone-cell">
-              <span class="${reqBadgeClass}">${getReqLabel(m.path, "q3")}</span>
+              <span class="${reqBadgeClass}">${isParticipating(m) ? getReqLabel(m.path, "q3") : d.notRequired}</span>
               <select class="status-select ${getStatusColorClass(m.q3Status)}" data-id="${m.id}" data-field="q3Status" ${m.path === "Undecided" ? "disabled" : ""}>
                 ${q3OptsHtml}
               </select>
@@ -3196,13 +3240,18 @@
           </td>
           <td>
             <div class="milestone-cell">
-              <span class="${reqBadgeClass}">${getReqLabel(m.path, "q4")}</span>
+              <span class="${reqBadgeClass}">${isParticipating(m) ? getReqLabel(m.path, "q4") : d.notRequired}</span>
               <select class="status-select ${getStatusColorClass(m.q4Status)}" data-id="${m.id}" data-field="q4Status" ${m.path === "Undecided" ? "disabled" : ""}>
                 ${q4OptsHtml}
               </select>
             </div>
           </td>
         `;
+        if (!isParticipating(m)) {
+          tr.querySelectorAll("select, input").forEach(el => {
+            if (el.getAttribute("data-field") !== "status") el.disabled = true;
+          });
+        }
         tbody.appendChild(tr);
       });
 
@@ -3220,6 +3269,10 @@
 
           const item = members.find(x => x.id === id);
           if (!item) return;
+          if (!isParticipating(item) && field !== "status") {
+            showToast(t().notRequired);
+            return;
+          }
 
           item[field] = e.target.value;
 
@@ -3261,20 +3314,19 @@
     function renderSlideReport() {
       const d = t();
       const list = getFilteredMembers();
-      const total = list.length || 1;
-      const confirmed = list.filter(m => m.status === "Confirmed").length;
-      const q3Done = list.filter(m => m.q3Status === "Done").length;
-      const q4Done = list.filter(m => m.q4Status === "Done").length;
+      const { total, confirmed, q3Done, q4Done } = getPlanStats(list);
 
       document.getElementById("slideKpiStrip").innerHTML = currentLang === "en" ? `
-        <span class="slide-kpi-pill">1-on-1 Confirmed: <strong>${confirmed}/${list.length}</strong> (${Math.round(confirmed/total*100)}%)</span>
-        <span class="slide-kpi-pill">Q3 Checkpoint: <strong>${q3Done}/${list.length}</strong> (${Math.round(q3Done/total*100)}%)</span>
-        <span class="slide-kpi-pill">Q4 Validated: <strong>${q4Done}/${list.length}</strong> (${Math.round(q4Done/total*100)}%)</span>
+        <span class="slide-kpi-pill">1-on-1 Confirmed: <strong>${confirmed}/${total}</strong> (${Math.round(confirmed/(total || 1)*100)}%)</span>
+        <span class="slide-kpi-pill">Q3 Checkpoint: <strong>${q3Done}/${total}</strong> (${Math.round(q3Done/(total || 1)*100)}%)</span>
+        <span class="slide-kpi-pill">Q4 Validated: <strong>${q4Done}/${total}</strong> (${Math.round(q4Done/(total || 1)*100)}%)</span>
       ` : `
-        <span class="slide-kpi-pill">1-on-1 已確認: <strong>${confirmed}/${list.length}</strong> (${Math.round(confirmed/total*100)}%)</span>
-        <span class="slide-kpi-pill">Q3 檢核完成: <strong>${q3Done}/${list.length}</strong> (${Math.round(q3Done/total*100)}%)</span>
-        <span class="slide-kpi-pill">Q4 驗收通過: <strong>${q4Done}/${list.length}</strong> (${Math.round(q4Done/total*100)}%)</span>
+        <span class="slide-kpi-pill">1-on-1 已確認: <strong>${confirmed}/${total}</strong> (${Math.round(confirmed/(total || 1)*100)}%)</span>
+        <span class="slide-kpi-pill">Q3 檢核完成: <strong>${q3Done}/${total}</strong> (${Math.round(q3Done/(total || 1)*100)}%)</span>
+        <span class="slide-kpi-pill">Q4 驗收通過: <strong>${q4Done}/${total}</strong> (${Math.round(q4Done/(total || 1)*100)}%)</span>
       `;
+      document.getElementById("slideKpiStrip").innerHTML +=
+        `<span class="slide-kpi-pill">${d.statusNotParticipating}: <strong>${list.length - total}</strong></span>`;
 
       const summaryContainer = document.getElementById("slideSummaryCards");
       const tbody = document.getElementById("slideTableBody");
@@ -3293,12 +3345,10 @@
 
         productGroups.forEach(g => {
           const items = list.filter(m => m.team === g.key);
-          const gConf = items.filter(m => m.status === "Confirmed").length;
-          const gCross = items.filter(m => m.path === "Cross-Product").length;
-          const gAdv = items.filter(m => m.path === "Advanced Product").length;
-          const gCert = items.filter(m => m.path === "Certification").length;
-          const gQ3 = items.filter(m => m.q3Status === "Done").length;
-          const gQ4 = items.filter(m => m.q4Status === "Done").length;
+          const {
+            total: gTotal, confirmed: gConf, cross: gCross, advanced: gAdv,
+            certification: gCert, q3Done: gQ3, q4Done: gQ4
+          } = getPlanStats(items);
 
           const card = document.createElement("div");
           card.className = `slide-summary-card summary-tint-${g.tintIdx}`;
@@ -3311,9 +3361,10 @@
               <span>🔹 Cross-product: <strong>${gCross}</strong></span>
               <span>🔸 Advanced: <strong>${gAdv}</strong></span>
               <span>🟡 Certification: <strong>${gCert}</strong></span>
-              <span>🟢 1-on-1 ${currentLang === "en" ? "Confirmed" : "確認"}: <strong>${gConf}/${items.length}</strong></span>
-              <span>✅ Q3 ${currentLang === "en" ? "Done" : "完成"}: <strong>${gQ3}/${items.length}</strong></span>
-              <span>🏆 Q4 ${currentLang === "en" ? "Validated" : "達標"}: <strong>${gQ4}/${items.length}</strong></span>
+              <span>🟢 1-on-1 ${currentLang === "en" ? "Confirmed" : "確認"}: <strong>${gConf}/${gTotal}</strong></span>
+              <span>✅ Q3 ${currentLang === "en" ? "Done" : "完成"}: <strong>${gQ3}/${gTotal}</strong></span>
+              <span>🏆 Q4 ${currentLang === "en" ? "Validated" : "達標"}: <strong>${gQ4}/${gTotal}</strong></span>
+              <span>${d.statusNotParticipating}: <strong>${items.length - gTotal}</strong></span>
             </div>
           `;
           summaryContainer.appendChild(card);
@@ -3326,7 +3377,7 @@
 
             items.forEach(m => {
               const tr = document.createElement("tr");
-              tr.className = `tint-group-${g.tintIdx}`;
+              tr.className = `tint-group-${g.tintIdx}${isParticipating(m) ? "" : " non-participating"}`;
               tr.innerHTML = `
                 <td style="font-weight:600;">${m.team}</td>
                 <td><strong>${m.name}</strong> ${m.roleTag ? `<span class="role-tag">${m.roleTag}</span>` : ""}</td>
@@ -3357,12 +3408,11 @@
           const items = list.filter(m => m.path === g.key);
           if (g.key === "Undecided" && items.length === 0) return;
 
-          const gODSP = items.filter(m => m.team === "ODSP").length;
-          const gTeams = items.filter(m => m.team === "Teams").length;
-          const gEXO = items.filter(m => m.team === "Exchange").length;
-          const gConf = items.filter(m => m.status === "Confirmed").length;
-          const gQ3 = items.filter(m => m.q3Status === "Done").length;
-          const gQ4 = items.filter(m => m.q4Status === "Done").length;
+          const participants = items.filter(isParticipating);
+          const gODSP = participants.filter(m => m.team === "ODSP").length;
+          const gTeams = participants.filter(m => m.team === "Teams").length;
+          const gEXO = participants.filter(m => m.team === "Exchange").length;
+          const { total: gTotal, confirmed: gConf, q3Done: gQ3, q4Done: gQ4 } = getPlanStats(items);
 
           if (g.key !== "Undecided") {
             const card = document.createElement("div");
@@ -3375,9 +3425,10 @@
               <div style="font-size:11.5px; color:var(--cp-accent); font-weight:600;">${g.criteria}</div>
               <div class="slide-summary-stats">
                 <span>ODSP: <strong>${gODSP}</strong> · Teams: <strong>${gTeams}</strong> · EXO: <strong>${gEXO}</strong></span>
-                <span>🟢 1-on-1 ${currentLang === "en" ? "Confirmed" : "確認"}: <strong>${gConf}/${items.length}</strong></span>
-                <span>✅ Q3 ${currentLang === "en" ? "Done" : "完成"}: <strong>${gQ3}/${items.length}</strong></span>
-                <span>🏆 Q4 ${currentLang === "en" ? "Validated" : "達標"}: <strong>${gQ4}/${items.length}</strong></span>
+                <span>🟢 1-on-1 ${currentLang === "en" ? "Confirmed" : "確認"}: <strong>${gConf}/${gTotal}</strong></span>
+                <span>✅ Q3 ${currentLang === "en" ? "Done" : "完成"}: <strong>${gQ3}/${gTotal}</strong></span>
+                <span>🏆 Q4 ${currentLang === "en" ? "Validated" : "達標"}: <strong>${gQ4}/${gTotal}</strong></span>
+                <span>${d.statusNotParticipating}: <strong>${items.length - gTotal}</strong></span>
               </div>
             `;
             summaryContainer.appendChild(card);
@@ -3391,7 +3442,7 @@
 
             items.forEach(m => {
               const tr = document.createElement("tr");
-              tr.className = `tint-group-${g.tintIdx}`;
+              tr.className = `tint-group-${g.tintIdx}${isParticipating(m) ? "" : " non-participating"}`;
               tr.innerHTML = `
                 <td style="font-weight:600;">${m.path === "Undecided" ? d.filterPathUndecided : m.path}</td>
                 <td><strong>${m.name}</strong> ${m.roleTag ? `<span class="role-tag">${m.roleTag}</span>` : ""}</td>
@@ -3421,7 +3472,7 @@
       cols["Advanced Product"].innerHTML = "";
       cols["Certification"].innerHTML = "";
 
-      const list = getFilteredMembers();
+      const list = getFilteredMembers().filter(isParticipating);
       document.getElementById("pbCntCross").textContent = list.filter(m => m.path === "Cross-Product").length;
       document.getElementById("pbCntAdv").textContent = list.filter(m => m.path === "Advanced Product").length;
       document.getElementById("pbCntCert").textContent = list.filter(m => m.path === "Certification").length;
@@ -3453,22 +3504,25 @@
       const cols = {
         Pending: document.getElementById("kbListPending"),
         Discussing: document.getElementById("kbListDiscussing"),
-        Confirmed: document.getElementById("kbListConfirmed")
+        Confirmed: document.getElementById("kbListConfirmed"),
+        NotParticipating: document.getElementById("kbListNotParticipating")
       };
       cols.Pending.innerHTML = "";
       cols.Discussing.innerHTML = "";
       cols.Confirmed.innerHTML = "";
+      cols.NotParticipating.innerHTML = "";
 
       const list = getFilteredMembers();
       document.getElementById("kbCntPending").textContent = list.filter(m => m.status === "Pending").length;
       document.getElementById("kbCntDiscussing").textContent = list.filter(m => m.status === "Discussing").length;
       document.getElementById("kbCntConfirmed").textContent = list.filter(m => m.status === "Confirmed").length;
+      document.getElementById("kbCntNotParticipating").textContent = list.filter(m => !isParticipating(m)).length;
 
       const canChangeStatus = (currentRole === "admin");
 
       list.forEach(m => {
         const card = document.createElement("div");
-        card.className = "kanban-card";
+        card.className = `kanban-card${isParticipating(m) ? "" : " non-participating"}`;
         card.innerHTML = `
           <div class="kanban-card-top">
             <div>
@@ -3487,6 +3541,7 @@
             ${m.status !== "Pending" ? `<button class="btn-xs" data-move="${m.id}:Pending">${d.kbMovePending}</button>` : ""}
             ${m.status !== "Discussing" ? `<button class="btn-xs" data-move="${m.id}:Discussing">${d.kbMoveDiscussing}</button>` : ""}
             ${m.status !== "Confirmed" ? `<button class="btn-xs" data-move="${m.id}:Confirmed">${d.kbMoveConfirmed}</button>` : ""}
+            ${isParticipating(m) ? `<button class="btn-xs" data-move="${m.id}:NotParticipating">${d.statusNotParticipating}</button>` : ""}
           </div>` : `<div style="font-size:11px; color:var(--cp-text-soft); margin-top:4px;">${d.kbLockedNotice}</div>`}
         `;
         cols[m.status].appendChild(card);
@@ -3518,12 +3573,10 @@
 
       teams.forEach(tm => {
         const group = members.filter(m => m.team === tm.code);
-        const conf = group.filter(m => m.status === "Confirmed").length;
-        const cCross = group.filter(m => m.path === "Cross-Product").length;
-        const cAdv = group.filter(m => m.path === "Advanced Product").length;
-        const cCert = group.filter(m => m.path === "Certification").length;
-        const q3Done = group.filter(m => m.q3Status === "Done").length;
-        const q4Done = group.filter(m => m.q4Status === "Done").length;
+        const {
+          total, confirmed: conf, cross: cCross, advanced: cAdv,
+          certification: cCert, q3Done, q4Done
+        } = getPlanStats(group);
 
         const box = document.createElement("div");
         box.className = "guide-box";
@@ -3535,14 +3588,15 @@
             <span class="advisor-pill">Advisor: <strong>${tm.advisor}</strong></span>
           </div>
           <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:12.5px; margin-top:6px;">
-            <span>🟢 1-on-1 Confirmed: <strong>${conf} / ${group.length}</strong></span>
+            <span>🟢 1-on-1 Confirmed: <strong>${conf} / ${total}</strong></span>
             <span>🔹 Cross-product: <strong>${cCross}</strong></span>
             <span>🔸 Advanced: <strong>${cAdv}</strong></span>
             <span>🟡 Certification: <strong>${cCert}</strong></span>
+            <span>${d.statusNotParticipating}: <strong>${group.length - total}</strong></span>
           </div>
           <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--cp-text-muted); margin-top:6px; padding-top:6px; border-top:1px solid var(--cp-border);">
-            <span>Q3 Checkpoint Done: <strong>${q3Done} / ${group.length}</strong></span>
-            <span>Q4 Validated: <strong>${q4Done} / ${group.length}</strong></span>
+            <span>Q3 Checkpoint Done: <strong>${q3Done} / ${total}</strong></span>
+            <span>Q4 Validated: <strong>${q4Done} / ${total}</strong></span>
           </div>
         `;
         tbContainer.appendChild(box);
@@ -3686,14 +3740,11 @@
         pptx.title = isEN ? "FY27 H2 Self-Selected Growth Path Summary" : "FY27 H2 成長路徑統計與進度總覽";
 
         const list = getFilteredMembers();
-        const total = list.length || 1;
-        const confirmed = list.filter(m => m.status === "Confirmed").length;
-        const q3Done = list.filter(m => m.q3Status === "Done").length;
-        const q4Done = list.filter(m => m.q4Status === "Done").length;
+        const { total, confirmed, q3Done, q4Done } = getPlanStats(list);
 
-        const confPct = Math.round((confirmed / total) * 100);
-        const q3Pct = Math.round((q3Done / total) * 100);
-        const q4Pct = Math.round((q4Done / total) * 100);
+        const confPct = Math.round((confirmed / (total || 1)) * 100);
+        const q3Pct = Math.round((q3Done / (total || 1)) * 100);
+        const q4Pct = Math.round((q4Done / (total || 1)) * 100);
 
         const mainTitleStr = currentSlideMode === "product" ? d.slideTitleProduct : d.slideTitlePath;
         const subTitleStr = currentSlideMode === "product" ? d.slideSubProduct : d.slideSubPath;
@@ -3790,13 +3841,13 @@
 
           // 3 Top KPI Pills (matching Image 3: 1-on-1 Confirmed, Q3 Checkpoint, Q4 Validated with counts & percentages)
           const kpiPills = isEN ? [
-            { label: "1-on-1 Confirmed: ", val: `${confirmed}/${list.length}`, pct: ` (${confPct}%)` },
-            { label: "Q3 Checkpoint: ",    val: `${q3Done}/${list.length}`,    pct: ` (${q3Pct}%)` },
-            { label: "Q4 Validated: ",     val: `${q4Done}/${list.length}`,    pct: ` (${q4Pct}%)` }
+            { label: "1-on-1 Confirmed: ", val: `${confirmed}/${total}`, pct: ` (${confPct}%)` },
+            { label: "Q3 Checkpoint: ", val: `${q3Done}/${total}`, pct: ` (${q3Pct}%)` },
+            { label: "Q4 Validated: ", val: `${q4Done}/${total}`, pct: ` (${q4Pct}%)` }
           ] : [
-            { label: "1-on-1 已確認: ", val: `${confirmed}/${list.length}`, pct: ` (${confPct}%)` },
-            { label: "Q3 檢核完成: ",   val: `${q3Done}/${list.length}`,    pct: ` (${q3Pct}%)` },
-            { label: "Q4 驗收通過: ",   val: `${q4Done}/${list.length}`,    pct: ` (${q4Pct}%)` }
+            { label: "1-on-1 已確認: ", val: `${confirmed}/${total}`, pct: ` (${confPct}%)` },
+            { label: "Q3 檢核完成: ",   val: `${q3Done}/${total}`,    pct: ` (${q3Pct}%)` },
+            { label: "Q4 驗收通過: ",   val: `${q4Done}/${total}`,    pct: ` (${q4Pct}%)` }
           ];
 
           kpiPills.forEach((p, idx) => {
@@ -3845,9 +3896,10 @@
             });
 
             const gItems = g.items;
-            const gConf = gItems.filter(m => m.status === "Confirmed").length;
-            const gQ3 = gItems.filter(m => m.q3Status === "Done").length;
-            const gQ4 = gItems.filter(m => m.q4Status === "Done").length;
+            const {
+              total: gTotal, confirmed: gConf, q3Done: gQ3, q4Done: gQ4,
+              cross: gCross, advanced: gAdv, certification: gCert
+            } = getPlanStats(gItems);
 
             // Card Header Title
             slide.addText(`${g.title} (${gItems.length} ${d.unitPeople})`, {
@@ -3879,19 +3931,15 @@
             });
 
             if (currentSlideMode === "product") {
-              const gCross = gItems.filter(m => m.path === "Cross-Product").length;
-              const gAdv = gItems.filter(m => m.path === "Advanced Product").length;
-              const gCert = gItems.filter(m => m.path === "Certification").length;
-
               const statLeft = [
                 `🔹 Cross-product: ${gCross}`,
                 `🟡 Certification: ${gCert}`,
-                `✅ Q3 ${isEN ? "Done" : "完成"}: ${gQ3}/${gItems.length}`
+                `✅ Q3 ${isEN ? "Done" : "完成"}: ${gQ3}/${gTotal}`
               ].join("\n");
               const statRight = [
                 `🔸 Advanced: ${gAdv}`,
-                `🟢 1-on-1 ${isEN ? "Confirmed" : "確認"}: ${gConf}/${gItems.length}`,
-                `🏆 Q4 ${isEN ? "Validated" : "達標"}: ${gQ4}/${gItems.length}`
+                `🟢 1-on-1 ${isEN ? "Confirmed" : "確認"}: ${gConf}/${gTotal}`,
+                `🏆 Q4 ${isEN ? "Validated" : "達標"}: ${gQ4}/${gTotal}`
               ].join("\n");
 
               slide.addText(statLeft, {
@@ -3903,17 +3951,18 @@
                 fontSize: 8.5, color: "444444", fontFace: "Segoe UI", lineSpacingMultiple: 1.15
               });
             } else {
-              const gODSP = gItems.filter(m => m.team === "ODSP").length;
-              const gTeams = gItems.filter(m => m.team === "Teams").length;
-              const gEXO = gItems.filter(m => m.team === "Exchange").length;
+              const participants = gItems.filter(isParticipating);
+              const gODSP = participants.filter(m => m.team === "ODSP").length;
+              const gTeams = participants.filter(m => m.team === "Teams").length;
+              const gEXO = participants.filter(m => m.team === "Exchange").length;
 
               const statLeft = [
                 `ODSP: ${gODSP} · Teams: ${gTeams} · EXO: ${gEXO}`,
-                `✅ Q3 ${isEN ? "Done" : "完成"}: ${gQ3}/${gItems.length}`
+                `✅ Q3 ${isEN ? "Done" : "完成"}: ${gQ3}/${gTotal}`
               ].join("\n");
               const statRight = [
-                `🟢 1-on-1 ${isEN ? "Confirmed" : "確認"}: ${gConf}/${gItems.length}`,
-                `🏆 Q4 ${isEN ? "Validated" : "達標"}: ${gQ4}/${gItems.length}`
+                `🟢 1-on-1 ${isEN ? "Confirmed" : "確認"}: ${gConf}/${gTotal}`,
+                `🏆 Q4 ${isEN ? "Validated" : "達標"}: ${gQ4}/${gTotal}`
               ].join("\n");
 
               slide.addText(statLeft, {
@@ -3951,7 +4000,7 @@
           const q3Color = m.q3Status === "Done" ? "16A34A" : (m.q3Status === "InProgress" ? "D97706" : "6F6F6F");
           const q4Color = m.q4Status === "Done" ? "16A34A" : ((m.q4Status === "InProgress" || m.q4Status === "InProgress2") ? "D97706" : "6F6F6F");
 
-          return [
+          const row = [
             { text: groupLabel, options: { bold: true, fill: g.rowFill, color: g.topColor } },
             { text: m.name + (m.roleTag ? ` (${m.roleTag})` : ""), options: { bold: true, fill: g.rowFill, color: "242424" } },
             { text: m.team, options: { fill: g.rowFill, color: "242424" } },
@@ -3962,6 +4011,13 @@
             { text: getOptionLabel(m.path, "q3", m.q3Status), options: { fill: g.rowFill, color: q3Color } },
             { text: getOptionLabel(m.path, "q4", m.q4Status), options: { fill: g.rowFill, color: q4Color } }
           ];
+          if (!isParticipating(m)) {
+            row.forEach(cell => {
+              cell.options.fill = "F5F5F5";
+              cell.options.color = "6F6F6F";
+            });
+          }
+          return row;
         }
 
         // Dynamic Slide Pagination:
@@ -3997,21 +4053,19 @@
                 cloneTbody.innerHTML = "";
                 batch.groupsToRender.forEach(g => {
                   const items = g.items;
-                  const gConf = items.filter(m => m.status === "Confirmed").length;
-                  const gQ3 = items.filter(m => m.q3Status === "Done").length;
-                  const gQ4 = items.filter(m => m.q4Status === "Done").length;
+                  const { total: gTotal, confirmed: gConf, q3Done: gQ3, q4Done: gQ4 } = getPlanStats(items);
                   const tintIdx = g.key === "ODSP" || g.key === "Cross-Product" ? 1
                                 : g.key === "Teams" || g.key === "Advanced Product" ? 2
                                 : g.key === "Exchange" || g.key === "Certification" ? 3 : 4;
 
                   const grpTr = document.createElement("tr");
                   grpTr.className = `slide-group-row group-header-${tintIdx}`;
-                  grpTr.innerHTML = `<td colspan="9">${g.title} (${isEN ? "Total" : "共"} ${items.length} ${d.unitPeople} ｜ 1-on-1 ${isEN ? "Confirmed" : "已確認"}: ${gConf}/${items.length} ｜ Q3 ${isEN ? "Done" : "完成"}: ${gQ3}/${items.length} ｜ Q4 ${isEN ? "Validated" : "達標"}: ${gQ4}/${items.length})</td>`;
+                  grpTr.innerHTML = `<td colspan="9">${g.title} (${isEN ? "Total" : "共"} ${items.length} ${d.unitPeople} ｜ 1-on-1 ${isEN ? "Confirmed" : "已確認"}: ${gConf}/${gTotal} ｜ Q3 ${isEN ? "Done" : "完成"}: ${gQ3}/${gTotal} ｜ Q4 ${isEN ? "Validated" : "達標"}: ${gQ4}/${gTotal})</td>`;
                   cloneTbody.appendChild(grpTr);
 
                   items.forEach(m => {
                     const tr = document.createElement("tr");
-                    tr.className = `tint-group-${tintIdx}`;
+                    tr.className = `tint-group-${tintIdx}${isParticipating(m) ? "" : " non-participating"}`;
                     const grpCol = currentSlideMode === "product" ? m.team : (m.path === "Undecided" ? d.filterPathUndecided : m.path);
                     tr.innerHTML = `
                       <td style="font-weight:600;">${grpCol}</td>
@@ -4089,12 +4143,10 @@
               const cleanSlideTitle = `${mainTitleStr} · ${g.title}`;
               drawHeaderAndSummaryCards(slide, cleanSlideTitle);
 
-              const gConf = g.items.filter(m => m.status === "Confirmed").length;
-              const gQ3 = g.items.filter(m => m.q3Status === "Done").length;
-              const gQ4 = g.items.filter(m => m.q4Status === "Done").length;
+              const { total: gTotal, confirmed: gConf, q3Done: gQ3, q4Done: gQ4 } = getPlanStats(g.items);
               const bannerText = isEN
-                ? `${g.title} (${g.items.length} FTEs)  |  1-on-1 Confirmed: ${gConf}/${g.items.length}  |  Q3 Done: ${gQ3}/${g.items.length}  |  Q4 Validated: ${gQ4}/${g.items.length}`
-                : `${g.title} (共 ${g.items.length} 人)  ｜  1-on-1 已確認: ${gConf}/${g.items.length}  ｜  Q3 完成: ${gQ3}/${g.items.length}  ｜  Q4 達標: ${gQ4}/${g.items.length}`;
+                ? `${g.title} (${g.items.length} FTEs)  |  1-on-1 Confirmed: ${gConf}/${gTotal}  |  Q3 Done: ${gQ3}/${gTotal}  |  Q4 Validated: ${gQ4}/${gTotal}`
+                : `${g.title} (共 ${g.items.length} 人)  ｜  1-on-1 已確認: ${gConf}/${gTotal}  ｜  Q3 完成: ${gQ3}/${gTotal}  ｜  Q4 達標: ${gQ4}/${gTotal}`;
 
               const rows = [
                 [
@@ -4366,7 +4418,7 @@
           if (match) {
             const foundPath = cols.find(c => ["Cross-Product", "Advanced Product", "Certification", "Undecided"].includes(c));
             if (foundPath) match.path = foundPath;
-            const foundStatus = cols.find(c => ["Pending", "Discussing", "Confirmed"].includes(c));
+            const foundStatus = cols.find(c => ["Pending", "Discussing", "Confirmed", "NotParticipating"].includes(c));
             if (foundStatus) match.status = foundStatus;
             else if (foundPath && foundPath !== "Undecided" && match.status === "Pending") match.status = "Discussing";
             updatedCount++;
