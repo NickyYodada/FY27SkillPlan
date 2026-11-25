@@ -1921,19 +1921,8 @@
       return set.size > 0 ? Array.from(set) : ["ODSP", "Teams", "Exchange"];
     }
 
-    function getDynamicAdvisorOptions() {
-      const set = new Set();
-      (members.length ? members : INITIAL_MEMBERS).forEach(m => {
-        if (m.advisor) set.add(m.advisor);
-      });
-      if (CLOUD_META.manager) set.add(`${CLOUD_META.manager} (Mgr)`);
-      if (CLOUD_META.planOwner) set.add(CLOUD_META.planOwner);
-      if (CLOUD_META.manager && CLOUD_META.planOwner) {
-        const mFirst = CLOUD_META.manager.split(" ")[0];
-        const pFirst = CLOUD_META.planOwner.split(" ")[0];
-        set.add(`${mFirst} / ${pFirst}`);
-      }
-      return Array.from(set);
+    function getAdvisorOptions() {
+      return ["Victor Wang", "Nicky Yang", "Ryan Chen", "Gordon Lin", "Caitlyn Lai"];
     }
 
     function getTeamAdvisorName(teamCode) {
@@ -3165,14 +3154,17 @@
       tbody.innerHTML = "";
 
       const isAdvisorAndStatusLocked = (currentRole === "ta" || currentRole === "victor");
-      const dynamicAdvisorList = getDynamicAdvisorOptions();
+      const advisorList = getAdvisorOptions();
 
       list.forEach(m => {
         const tr = document.createElement("tr");
         tr.className = `${getProductTintClass(m.team)}${isParticipating(m) ? "" : " non-participating"}`;
         const cfg = PATH_CONFIG[m.path] || PATH_CONFIG["Undecided"];
 
-        const advisorOptsHtml = dynamicAdvisorList.map(opt =>
+        const legacyAdvisorOption = advisorList.includes(m.advisor)
+          ? ""
+          : `<option value="${escapeHtml(m.advisor)}" selected disabled>${escapeHtml(m.advisor)}</option>`;
+        const advisorOptsHtml = advisorList.map(opt =>
           `<option value="${escapeHtml(opt)}" ${m.advisor === opt ? "selected" : ""}>${escapeHtml(opt)}</option>`
         ).join("");
 
@@ -3192,6 +3184,7 @@
                <span class="locked-icon">🔒</span>
              </div>`
           : `<select class="select-ctrl" style="width:100%" data-id="${m.id}" data-field="advisor">
+               ${legacyAdvisorOption}
                ${advisorOptsHtml}
              </select>`;
 
