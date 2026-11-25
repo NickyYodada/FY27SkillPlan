@@ -4037,6 +4037,19 @@
               const frameClone = document.getElementById("slideExportArea").cloneNode(true);
               frameClone.style.width = "1320px";
               frameClone.style.margin = "0";
+              frameClone.style.height = "auto";
+              frameClone.style.maxHeight = "none";
+              frameClone.style.overflow = "visible";
+
+              const cloneTable = frameClone.querySelector("#slideHtmlTable");
+              if (cloneTable) {
+                const tableWrapper = cloneTable.parentElement;
+                tableWrapper.style.overflow = "visible";
+                tableWrapper.style.height = "auto";
+                tableWrapper.style.maxHeight = "none";
+                tableWrapper.scrollLeft = 0;
+                tableWrapper.scrollTop = 0;
+              }
 
               const titleEl = frameClone.querySelector("#slideReportTitle");
               if (titleEl) titleEl.textContent = mainTitleStr + batch.titleSuffix;
@@ -4079,10 +4092,21 @@
               host.innerHTML = "";
               host.appendChild(frameClone);
 
+              // Preserve both frame margins when expanding to fit overflowing table columns.
+              const frameStyle = getComputedStyle(frameClone);
+              const fullWidth = cloneTable
+                ? Math.ceil(cloneTable.parentElement.scrollWidth
+                    + parseFloat(frameStyle.paddingLeft) + parseFloat(frameStyle.paddingRight)
+                    + frameClone.offsetWidth - frameClone.clientWidth)
+                : frameClone.offsetWidth;
+              frameClone.style.width = `${Math.max(1320, fullWidth)}px`;
+              host.style.width = frameClone.style.width;
               const rect = frameClone.getBoundingClientRect();
               const bgColor = getComputedStyle(document.body).backgroundColor || "#f7f4ef";
               const imgData = await htmlToImage.toPng(frameClone, {
                 pixelRatio: 2,
+                width: Math.ceil(rect.width),
+                height: Math.ceil(rect.height),
                 backgroundColor: bgColor,
                 style: { opacity: "1" }
               });
